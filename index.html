@@ -444,6 +444,61 @@
   /* Gold line */
   .gold-line { height: 1px; background: linear-gradient(90deg, transparent, var(--gold-light), transparent); margin: 28px 0; }
 
+  /* Clickable table rows with action buttons */
+  .readings-table tbody tr { cursor: pointer; transition: background 0.15s; }
+  .readings-table tbody tr:hover td { background: var(--cream); }
+  .row-actions {
+    display: inline-flex; gap: 6px; opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .readings-table tbody tr:hover .row-actions { opacity: 1; }
+  .row-btn {
+    padding: 3px 9px; border-radius: 5px;
+    font-family: 'Jost', sans-serif; font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    cursor: pointer; border: 1px solid var(--border);
+    transition: all 0.15s;
+  }
+  .row-btn.edit { background: var(--gold-pale); color: var(--gold-dim); border-color: var(--gold-light); }
+  .row-btn.edit:hover { background: var(--gold-light); }
+  .row-btn.del { background: var(--alert-red-bg); color: var(--alert-red); border-color: #f3b0aa; }
+  .row-btn.del:hover { background: #fbd5d1; }
+
+  /* Medication card rows (not table) */
+  .med-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px; border-bottom: 1px solid var(--cream);
+    transition: background 0.15s; cursor: default;
+  }
+  .med-row:last-child { border-bottom: none; }
+  .med-row:hover { background: var(--cream); }
+  .med-row-info { flex: 1; }
+  .med-row-name { font-size: 14px; font-weight: 600; color: var(--text-dark); margin-bottom: 3px; }
+  .med-row-detail { font-size: 12px; color: var(--text-light); }
+  .med-row-dates { font-size: 11px; color: var(--text-light); margin-top: 2px; }
+  .med-status-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 10px;
+    font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;
+    margin-left: 8px;
+  }
+  .med-status-badge.active { background: var(--alert-green-bg); color: var(--alert-green); }
+  .med-status-badge.inactive { background: var(--cream); color: var(--text-light); }
+  .med-row-actions { display: flex; gap: 6px; flex-shrink: 0; margin-left: 12px; }
+
+  /* Confirm delete dialog inside modal */
+  .confirm-delete-bar {
+    background: var(--alert-red-bg); border: 1px solid #f3b0aa;
+    border-radius: 10px; padding: 14px 16px; margin-top: 16px;
+    display: none;
+  }
+  .confirm-delete-bar.show { display: block; }
+  .confirm-delete-bar p { font-size: 13px; color: var(--text-dark); margin-bottom: 10px; }
+  .confirm-delete-bar .btn-del-confirm {
+    padding: 7px 18px; background: var(--alert-red); border: none;
+    border-radius: 8px; font-family: 'Jost', sans-serif; font-size: 13px; font-weight: 600;
+    color: white; cursor: pointer; margin-right: 8px;
+  }
+
   @media (max-width: 768px) { .main { padding: 24px 20px; } }
 </style>
 </head>
@@ -573,7 +628,7 @@
           <div class="chart-container"><canvas id="bpChart"></canvas></div>
           <div style="margin-top:18px;">
             <table class="readings-table" id="bpTable">
-              <thead><tr><th>Date</th><th>Systolic</th><th>Diastolic</th><th>Status</th><th>Notes</th></tr></thead>
+              <thead><tr><th>Date</th><th>Systolic</th><th>Diastolic</th><th>Status</th><th>Notes</th><th></th></tr></thead>
               <tbody></tbody>
             </table>
           </div>
@@ -590,7 +645,7 @@
           <div class="chart-container"><canvas id="a1cChart"></canvas></div>
           <div style="margin-top:18px;">
             <table class="readings-table" id="a1cTable">
-              <thead><tr><th>Date</th><th>A1C %</th><th>Status</th><th>Notes</th></tr></thead>
+              <thead><tr><th>Date</th><th>A1C %</th><th>Status</th><th>Notes</th><th></th></tr></thead>
               <tbody></tbody>
             </table>
           </div>
@@ -601,10 +656,7 @@
         <div class="medications-head">
           <div class="detail-card-title">Medications</div>
         </div>
-        <table class="readings-table" id="medicationsTable">
-          <thead><tr><th>Name</th><th>Dosage</th><th>Start Date</th></tr></thead>
-          <tbody></tbody>
-        </table>
+        <div id="medicationsList"></div>
       </div>
     </div>
 
@@ -696,6 +748,37 @@
   </div>
 </div>
 
+<!-- EDIT READING MODAL -->
+<div class="modal-overlay" id="editReadingModal">
+  <div class="modal">
+    <h3 id="editReadingTitle">Edit Reading</h3>
+    <div class="modal-sub" id="editReadingModalSub">Patient #—</div>
+    <div id="editReadingBPFields">
+      <div class="form-row"><label>Date</label><input type="date" id="edit-bp-datetime" /></div>
+      <div class="form-row-pair">
+        <div class="form-row"><label>Systolic (mmHg)</label><input type="number" id="edit-bp-systolic" /></div>
+        <div class="form-row"><label>Diastolic (mmHg)</label><input type="number" id="edit-bp-diastolic" /></div>
+      </div>
+      <div class="form-row"><label>Notes (optional)</label><textarea id="edit-bp-note"></textarea></div>
+    </div>
+    <div id="editReadingA1CFields" style="display:none">
+      <div class="form-row"><label>Date</label><input type="date" id="edit-a1c-datetime" /></div>
+      <div class="form-row"><label>A1C (%)</label><input type="number" step="0.1" id="edit-a1c-value" /></div>
+      <div class="form-row"><label>Notes (optional)</label><textarea id="edit-a1c-note"></textarea></div>
+    </div>
+    <div class="confirm-delete-bar" id="readingDeleteBar">
+      <p>Are you sure you want to delete this reading? This cannot be undone.</p>
+      <button class="btn-del-confirm" onclick="confirmDeleteReading()">Delete Reading</button>
+      <button class="btn-cancel" onclick="document.getElementById('readingDeleteBar').classList.remove('show')" style="padding:7px 14px">Cancel</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="document.getElementById('readingDeleteBar').classList.add('show')" style="color:var(--alert-red);border-color:#f3b0aa;">Delete</button>
+      <button class="btn-cancel" onclick="closeModal('editReadingModal')">Cancel</button>
+      <button class="btn-save" onclick="saveEditedReading()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
 <!-- ADD PATIENT MODAL -->
 <div class="modal-overlay" id="addPatientModal">
   <div class="modal">
@@ -709,15 +792,24 @@
   </div>
 </div>
 
-<!-- ADD MEDICATION MODAL -->
+<!-- ADD / EDIT MEDICATION MODAL -->
 <div class="modal-overlay" id="addMedicationModal">
   <div class="modal">
-    <h3>Add Medication</h3>
+    <h3 id="medModalTitle">Add Medication</h3>
     <div class="modal-sub" id="addMedicationModalSub">Patient #—</div>
     <div class="form-row"><label>Medication Name</label><input type="text" id="med-name" placeholder="e.g. Lisinopril" /></div>
     <div class="form-row"><label>Dosage</label><input type="text" id="med-dosage" placeholder="e.g. 10 mg once daily" /></div>
-    <div class="form-row"><label>Start Date</label><input type="date" id="med-start-date" /></div>
+    <div class="form-row-pair">
+      <div class="form-row"><label>Start Date</label><input type="date" id="med-start-date" /></div>
+      <div class="form-row"><label>End Date <span style="font-weight:300;text-transform:none;letter-spacing:0">(if discontinued)</span></label><input type="date" id="med-end-date" /></div>
+    </div>
+    <div class="confirm-delete-bar" id="medDeleteBar">
+      <p>Are you sure you want to remove this medication? This cannot be undone.</p>
+      <button class="btn-del-confirm" onclick="confirmDeleteMedication()">Remove Medication</button>
+      <button class="btn-cancel" onclick="document.getElementById('medDeleteBar').classList.remove('show')" style="padding:7px 14px">Cancel</button>
+    </div>
     <div class="modal-actions">
+      <button class="btn-cancel" id="medDeleteTrigger" onclick="document.getElementById('medDeleteBar').classList.add('show')" style="display:none;color:var(--alert-red);border-color:#f3b0aa;">Remove</button>
       <button class="btn-cancel" onclick="closeModal('addMedicationModal')">Cancel</button>
       <button class="btn-save" onclick="saveMedication()">Save Medication</button>
     </div>
@@ -767,6 +859,7 @@ function loadDB() {
   if (!db.seenAlerts) db.seenAlerts = [];
   for (const pid in db.patients) {
     if (!db.patients[pid].medications) db.patients[pid].medications = [];
+    db.patients[pid].medications.forEach(m => { if (!('endDate' in m)) m.endDate = ''; });
   }
 }
 
@@ -1002,7 +1095,7 @@ function openPatient(id) {
   renderA1CChart(a1cReadings);
   renderBPTable(bpReadings);
   renderA1CTable(a1cReadings);
-  renderMedicationsTable(p.medications || []);
+  renderMedicationsList(p.medications || []);
   setDetailMetric(currentDetailMetric);
 }
 
@@ -1102,33 +1195,179 @@ function toggleChart(chartName, type, btn) {
 // ═══════════════════════════════════
 function renderBPTable(readings) {
   const tbody = document.querySelector('#bpTable tbody');
-  if (!readings.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-light);padding:20px;font-style:italic;">No readings yet</td></tr>'; return; }
-  tbody.innerHTML = readings.slice().reverse().map(r => {
+  if (!readings.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-light);padding:20px;font-style:italic;">No readings yet</td></tr>'; return; }
+  tbody.innerHTML = readings.slice().reverse().map((r, revIdx) => {
+    const idx = readings.length - 1 - revIdx; // original index
     const s = getBPStatus(r.sys, r.dia);
     const cls = s === 'critical' ? 'critical' : s === 'warning' ? 'warning' : '';
     const lbl = s === 'critical' ? 'Urgent' : s === 'warning' ? 'High' : 'Normal';
     const note = r.note ? escapeHtml(r.note) : '<span class="note-empty">—</span>';
-    return `<tr><td>${formatDateTime(r.datetime)}</td><td><span class="bp-val ${cls}">${r.sys}</span></td><td><span class="bp-val ${cls}">${r.dia}</span></td><td>${lbl}</td><td class="note-cell">${note}</td></tr>`;
+    return `<tr>
+      <td>${formatDateTime(r.datetime)}</td>
+      <td><span class="bp-val ${cls}">${r.sys}</span></td>
+      <td><span class="bp-val ${cls}">${r.dia}</span></td>
+      <td>${lbl}</td>
+      <td class="note-cell">${note}</td>
+      <td style="white-space:nowrap;text-align:right">
+        <span class="row-actions">
+          <button class="row-btn edit" onclick="event.stopPropagation();openEditReading('bp',${idx})">Edit</button>
+          <button class="row-btn del" onclick="event.stopPropagation();openEditReading('bp',${idx});document.getElementById('readingDeleteBar').classList.add('show')">Delete</button>
+        </span>
+      </td>
+    </tr>`;
   }).join('');
 }
 
 function renderA1CTable(readings) {
   const tbody = document.querySelector('#a1cTable tbody');
-  if (!readings.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-light);padding:20px;font-style:italic;">No readings yet</td></tr>'; return; }
-  tbody.innerHTML = readings.slice().reverse().map(r => {
+  if (!readings.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-light);padding:20px;font-style:italic;">No readings yet</td></tr>'; return; }
+  tbody.innerHTML = readings.slice().reverse().map((r, revIdx) => {
+    const idx = readings.length - 1 - revIdx;
     const s = getA1CStatus(r.val);
     const cls = s === 'critical' ? 'critical' : s === 'warning' ? 'warning' : '';
     const lbl = s === 'critical' ? 'Poor Control' : s === 'warning' ? 'Above Target' : 'Controlled';
     const note = r.note ? escapeHtml(r.note) : '<span class="note-empty">—</span>';
-    return `<tr><td>${formatDateTime(r.datetime)}</td><td><span class="a1c-val ${cls}">${r.val}%</span></td><td>${lbl}</td><td class="note-cell">${note}</td></tr>`;
+    return `<tr>
+      <td>${formatDateTime(r.datetime)}</td>
+      <td><span class="a1c-val ${cls}">${r.val}%</span></td>
+      <td>${lbl}</td>
+      <td class="note-cell">${note}</td>
+      <td style="white-space:nowrap;text-align:right">
+        <span class="row-actions">
+          <button class="row-btn edit" onclick="event.stopPropagation();openEditReading('a1c',${idx})">Edit</button>
+          <button class="row-btn del" onclick="event.stopPropagation();openEditReading('a1c',${idx});document.getElementById('readingDeleteBar').classList.add('show')">Delete</button>
+        </span>
+      </td>
+    </tr>`;
   }).join('');
 }
 
-function renderMedicationsTable(medications) {
-  const tbody = document.querySelector('#medicationsTable tbody');
-  if (!tbody) return;
-  if (!medications.length) { tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-light);padding:20px;font-style:italic;">No medications added</td></tr>'; return; }
-  tbody.innerHTML = medications.slice().reverse().map(m => `<tr><td>${escapeHtml(m.name||'')}</td><td>${escapeHtml(m.dosage||'')}</td><td>${formatDateTime(m.startDate||'')}</td></tr>`).join('');
+function renderMedicationsList(medications) {
+  const container = document.getElementById('medicationsList');
+  if (!container) return;
+  if (!medications || !medications.length) {
+    container.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-light);font-style:italic;font-size:13px;">No medications added</div>';
+    return;
+  }
+  // Sort: active first (no endDate or endDate in future), then inactive
+  const sorted = medications.map((m, i) => ({ ...m, _idx: i })).sort((a, b) => {
+    const aActive = !a.endDate || new Date(a.endDate) >= new Date();
+    const bActive = !b.endDate || new Date(b.endDate) >= new Date();
+    if (aActive && !bActive) return -1;
+    if (!aActive && bActive) return 1;
+    return 0;
+  });
+  container.innerHTML = sorted.map(m => {
+    const isActive = !m.endDate || new Date(m.endDate) >= new Date();
+    const badge = isActive
+      ? '<span class="med-status-badge active">Active</span>'
+      : '<span class="med-status-badge inactive">Discontinued</span>';
+    const dateStr = m.startDate ? `Started ${formatDateTime(m.startDate)}` : '';
+    const endStr = m.endDate ? ` &mdash; Ended ${formatDateTime(m.endDate)}` : '';
+    return `<div class="med-row">
+      <div class="med-row-info">
+        <div class="med-row-name">${escapeHtml(m.name || '')}${badge}</div>
+        <div class="med-row-detail">${escapeHtml(m.dosage || '')}</div>
+        <div class="med-row-dates">${dateStr}${endStr}</div>
+      </div>
+      <div class="med-row-actions">
+        <button class="row-btn edit" onclick="openEditMedication(${m._idx})">Edit</button>
+        <button class="row-btn del" onclick="openEditMedication(${m._idx});document.getElementById('medDeleteBar').classList.add('show')">Remove</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── EDIT / DELETE READINGS ──────────────────────────
+let editReadingType = null;
+let editReadingIndex = null;
+
+function openEditReading(type, idx) {
+  editReadingType = type;
+  editReadingIndex = idx;
+  const p = db.patients[currentPatientId];
+  const r = type === 'bp' ? p.bpReadings[idx] : p.a1cReadings[idx];
+  document.getElementById('editReadingTitle').textContent = type === 'bp' ? 'Edit Blood Pressure Reading' : 'Edit A1C Reading';
+  document.getElementById('editReadingModalSub').textContent = `Patient #${currentPatientId}`;
+  document.getElementById('readingDeleteBar').classList.remove('show');
+  document.getElementById('editReadingBPFields').style.display = type === 'bp' ? 'block' : 'none';
+  document.getElementById('editReadingA1CFields').style.display = type === 'a1c' ? 'block' : 'none';
+  if (type === 'bp') {
+    document.getElementById('edit-bp-datetime').value = r.datetime || '';
+    document.getElementById('edit-bp-systolic').value = r.sys || '';
+    document.getElementById('edit-bp-diastolic').value = r.dia || '';
+    document.getElementById('edit-bp-note').value = r.note || '';
+  } else {
+    document.getElementById('edit-a1c-datetime').value = r.datetime || '';
+    document.getElementById('edit-a1c-value').value = r.val || '';
+    document.getElementById('edit-a1c-note').value = r.note || '';
+  }
+  document.getElementById('editReadingModal').classList.add('open');
+}
+
+function saveEditedReading() {
+  if (editReadingIndex === null || !currentPatientId) return;
+  const p = db.patients[currentPatientId];
+  if (editReadingType === 'bp') {
+    const sys = parseFloat(document.getElementById('edit-bp-systolic').value);
+    const dia = parseFloat(document.getElementById('edit-bp-diastolic').value);
+    const dt = document.getElementById('edit-bp-datetime').value;
+    const note = document.getElementById('edit-bp-note').value.trim();
+    if (!sys || !dia || !dt) { showToast('Please fill in all fields'); return; }
+    p.bpReadings[editReadingIndex] = { sys, dia, datetime: dt, note };
+  } else {
+    const val = parseFloat(document.getElementById('edit-a1c-value').value);
+    const dt = document.getElementById('edit-a1c-datetime').value;
+    const note = document.getElementById('edit-a1c-note').value.trim();
+    if (!val || !dt) { showToast('Please fill in all fields'); return; }
+    p.a1cReadings[editReadingIndex] = { val, datetime: dt, note };
+  }
+  // Re-sort after edit
+  p.bpReadings.sort((a,b) => new Date(a.datetime) - new Date(b.datetime));
+  p.a1cReadings.sort((a,b) => new Date(a.datetime) - new Date(b.datetime));
+  saveDB();
+  closeModal('editReadingModal');
+  openPatient(currentPatientId);
+  showToast('Reading updated');
+}
+
+function confirmDeleteReading() {
+  if (editReadingIndex === null || !currentPatientId) return;
+  const p = db.patients[currentPatientId];
+  if (editReadingType === 'bp') p.bpReadings.splice(editReadingIndex, 1);
+  else p.a1cReadings.splice(editReadingIndex, 1);
+  saveDB();
+  closeModal('editReadingModal');
+  openPatient(currentPatientId);
+  renderHomeStats();
+  showToast('Reading deleted');
+}
+
+// ── EDIT / DELETE MEDICATIONS ────────────────────────
+let editMedicationIndex = null;
+
+function openEditMedication(idx) {
+  editMedicationIndex = idx;
+  const m = db.patients[currentPatientId].medications[idx];
+  document.getElementById('medModalTitle').textContent = 'Edit Medication';
+  document.getElementById('addMedicationModalSub').textContent = `Patient #${currentPatientId}`;
+  document.getElementById('med-name').value = m.name || '';
+  document.getElementById('med-dosage').value = m.dosage || '';
+  document.getElementById('med-start-date').value = m.startDate || '';
+  document.getElementById('med-end-date').value = m.endDate || '';
+  document.getElementById('medDeleteBar').classList.remove('show');
+  document.getElementById('medDeleteTrigger').style.display = 'inline-block';
+  document.getElementById('addMedicationModal').classList.add('open');
+}
+
+function confirmDeleteMedication() {
+  if (editMedicationIndex === null || !currentPatientId) return;
+  db.patients[currentPatientId].medications.splice(editMedicationIndex, 1);
+  saveDB();
+  closeModal('addMedicationModal');
+  renderMedicationsList(db.patients[currentPatientId].medications);
+  showToast('Medication removed');
+  editMedicationIndex = null;
 }
 
 // ═══════════════════════════════════
@@ -1192,9 +1431,15 @@ async function saveReading() {
 
 function openAddMedicationModal() {
   if (!currentPatientId) return;
+  editMedicationIndex = null;
+  document.getElementById('medModalTitle').textContent = 'Add Medication';
+  document.getElementById('addMedicationModalSub').textContent = `Patient #${currentPatientId}`;
   document.getElementById('med-name').value = '';
   document.getElementById('med-dosage').value = '';
   document.getElementById('med-start-date').value = new Date().toISOString().slice(0,10);
+  document.getElementById('med-end-date').value = '';
+  document.getElementById('medDeleteBar').classList.remove('show');
+  document.getElementById('medDeleteTrigger').style.display = 'none';
   document.getElementById('addMedicationModal').classList.add('open');
 }
 
@@ -1203,15 +1448,23 @@ async function saveMedication() {
   const name = document.getElementById('med-name').value.trim();
   const dosage = document.getElementById('med-dosage').value.trim();
   const startDate = document.getElementById('med-start-date').value;
-  if (!name || !dosage || !startDate) { showToast('Please fill in all medication fields'); return; }
-  if (!db.patients[currentPatientId]) db.patients[currentPatientId] = { bpReadings: [], a1cReadings: [], medications: [] };
+  const endDate = document.getElementById('med-end-date').value;
+  if (!name || !dosage || !startDate) { showToast('Please fill in name, dosage, and start date'); return; }
   if (!db.patients[currentPatientId].medications) db.patients[currentPatientId].medications = [];
-  const med = { name, dosage, startDate };
-  db.patients[currentPatientId].medications.push(med);
-  saveDB(); closeModal('addMedicationModal');
-  renderMedicationsTable(db.patients[currentPatientId].medications);
+  const med = { name, dosage, startDate, endDate: endDate || '' };
+  const isEdit = editMedicationIndex !== null;
+  if (isEdit) {
+    db.patients[currentPatientId].medications[editMedicationIndex] = med;
+  } else {
+    db.patients[currentPatientId].medications.push(med);
+  }
+  saveDB();
+  closeModal('addMedicationModal');
+  renderMedicationsList(db.patients[currentPatientId].medications);
+  editMedicationIndex = null;
   try { await postToSheetBackend('add_medication', { patientId: currentPatientId, ...med }); }
   catch (e) { showToast('Medication saved locally; Google Sheets write failed.'); }
+  showToast(isEdit ? 'Medication updated' : 'Medication saved');
 }
 
 function openAddPatientModal() {
@@ -1544,7 +1797,7 @@ if (!sheetId && Object.keys(db.patients).length === 0) {
         { val: 7.2, datetime: "2025-01-10", note: "" },
         { val: 6.8, datetime: "2025-04-05", note: "" }
       ],
-      medications: [{ name: "Lisinopril", dosage: "5 mg once daily", startDate: "2025-02-14" }]
+      medications: [{ name: "Lisinopril", dosage: "5 mg once daily", startDate: "2025-02-14", endDate: "" }]
     },
     "1042": {
       bpReadings: [
