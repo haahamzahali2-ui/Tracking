@@ -570,12 +570,12 @@
         </div>
         <div>
           <h3>Connect Your Google Sheet</h3>
-          <p>Paste your <strong>Google Sheet ID</strong> below to sync patient data. The Sheet ID is the long string in your Sheet's URL between <code>/d/</code> and <code>/edit</code>.<br>
-          Make sure your Sheet is set to <strong>"Anyone with link can view"</strong>.<br>
-          <a href="#" onclick="openSheetTemplate()">View Sheet template &amp; setup instructions</a></p>
+          <p>Paste your <strong>Apps Script Web App URL</strong> below to sync patient data across all devices.<br>
+          Once connected, hardcode the URL in the source file so all devices sync automatically.<br>
+          <a href="#" onclick="openSheetTemplate()">View setup instructions</a></p>
           <div class="sheet-input-row">
-            <input type="text" id="sheetIdInput" placeholder="Paste Google Sheet ID here…" />
-            <input type="text" id="sheetWriteUrlInput" placeholder="Optional: Apps Script Web App URL for write-back…" />
+            <input type="text" id="sheetIdInput" placeholder="Optional: Google Sheet ID (for read-only fallback)…" />
+            <input type="text" id="sheetWriteUrlInput" placeholder="Apps Script Web App URL…" />
             <button onclick="connectSheet()">Connect</button>
           </div>
         </div>
@@ -839,6 +839,13 @@ const STORAGE_KEY = 'hh_clinic_data';
 const SHEET_ID_KEY = 'hh_sheet_id';
 const SHEET_WRITE_URL_KEY = 'hh_sheet_write_url';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// STEP 1: After you deploy GoogleAppsScript-Code.gs as a Web App,
+//         paste the Web App URL between the quotes below, then push to GitHub.
+//         Every device that opens this page will auto-sync — no manual setup.
+// ─────────────────────────────────────────────────────────────────────────────
+const HARDCODED_SCRIPT_URL = 'AKfycbzGSarWFdwICxaaafVkF6V8gUYBw08DcYho49vJI7MdNFQrsOBb7o0dN9nZ7DICSBl4';  // <-- paste your Apps Script Web App URL here
+
 let db = { patients: {}, alerts: [], seenAlerts: [] };
 let sheetId = localStorage.getItem(SHEET_ID_KEY) || '';
 let sheetWriteUrl = localStorage.getItem(SHEET_WRITE_URL_KEY) || '';
@@ -906,7 +913,7 @@ function parseBackendBundle(bundle) {
     const pid = String(m.patientId || '').trim();
     if (!pid) return;
     if (!rebuilt[pid]) rebuilt[pid] = { bpReadings: [], a1cReadings: [], medications: [] };
-    rebuilt[pid].medications.push({ name: String(m.name||''), dosage: String(m.dosage||''), startDate: String(m.startDate||'') });
+    rebuilt[pid].medications.push({ name: String(m.name||''), dosage: String(m.dosage||''), startDate: String(m.startDate||''), endDate: String(m.endDate||'') });
   });
   db.patients = rebuilt;
   db.alerts = (bundle.alerts || []).map(a => ({
@@ -944,14 +951,12 @@ function getA1CStatus(val) {
 
 // ═══════════════════════════════════
 // IMPROVEMENT LOGIC
-// Compares last two readings; returns 'improving'|'worsening'|'stable'|'new'
 // ═══════════════════════════════════
 function getBPTrend(readings) {
   if (!readings || readings.length < 2) return 'new';
   const prev = readings[readings.length - 2];
   const last = readings[readings.length - 1];
-  const prevSys = prev.sys, lastSys = last.sys;
-  const diff = lastSys - prevSys;
+  const diff = last.sys - prev.sys;
   if (diff <= -5) return 'improving';
   if (diff >= 5)  return 'worsening';
   return 'stable';
@@ -1060,7 +1065,7 @@ function renderPatientsGrid(filter = '') {
   }).join('');
   grid.innerHTML = cards + `<button class="add-patient-btn" onclick="openAddPatientModal()">+ Add New Patient</button>`;
   const banner = document.getElementById('sheetSetupBanner');
-  if (sheetId) banner.style.display = 'none';
+  if (sheetWriteUrl || sheetId) banner.style.display = 'none';
 }
 
 function filterPatients() {
@@ -1197,7 +1202,7 @@ function renderBPTable(readings) {
   const tbody = document.querySelector('#bpTable tbody');
   if (!readings.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-light);padding:20px;font-style:italic;">No readings yet</td></tr>'; return; }
   tbody.innerHTML = readings.slice().reverse().map((r, revIdx) => {
-    const idx = readings.length - 1 - revIdx; // original index
+    const idx = readings.length - 1 - revIdx;
     const s = getBPStatus(r.sys, r.dia);
     const cls = s === 'critical' ? 'critical' : s === 'warning' ? 'warning' : '';
     const lbl = s === 'critical' ? 'Urgent' : s === 'warning' ? 'High' : 'Normal';
@@ -1249,7 +1254,6 @@ function renderMedicationsList(medications) {
     container.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-light);font-style:italic;font-size:13px;">No medications added</div>';
     return;
   }
-  // Sort: active first (no endDate or endDate in future), then inactive
   const sorted = medications.map((m, i) => ({ ...m, _idx: i })).sort((a, b) => {
     const aActive = !a.endDate || new Date(a.endDate) >= new Date();
     const bActive = !b.endDate || new Date(b.endDate) >= new Date();
@@ -1322,7 +1326,6 @@ function saveEditedReading() {
     if (!val || !dt) { showToast('Please fill in all fields'); return; }
     p.a1cReadings[editReadingIndex] = { val, datetime: dt, note };
   }
-  // Re-sort after edit
   p.bpReadings.sort((a,b) => new Date(a.datetime) - new Date(b.datetime));
   p.a1cReadings.sort((a,b) => new Date(a.datetime) - new Date(b.datetime));
   saveDB();
@@ -1411,6 +1414,7 @@ async function saveReading() {
     if (!sys || !dia || !dt) { showToast('Please fill in all fields'); return; }
     const newReading = { sys, dia, datetime: dt, note };
     p.bpReadings.push(newReading);
+    p.bpReadings.sort((a,b) => new Date(a.datetime) - new Date(b.datetime));
     checkAndAddAlert(currentPatientId, 'bp', [sys, dia], dt);
     try { await postToSheetBackend('add_reading', { patientId: currentPatientId, type: 'bp', ...newReading }); }
     catch (e) { showToast('BP reading saved locally; Google Sheets write failed.'); }
@@ -1421,6 +1425,7 @@ async function saveReading() {
     if (!val || !dt) { showToast('Please fill in all fields'); return; }
     const newReading = { val, datetime: dt, note };
     p.a1cReadings.push(newReading);
+    p.a1cReadings.sort((a,b) => new Date(a.datetime) - new Date(b.datetime));
     checkAndAddAlert(currentPatientId, 'a1c', val, dt);
     try { await postToSheetBackend('add_reading', { patientId: currentPatientId, type: 'a1c', ...newReading }); }
     catch (e) { showToast('A1C reading saved locally; Google Sheets write failed.'); }
@@ -1533,10 +1538,7 @@ function renderAnalyticsKPIs(bpOutcomes, a1cOutcomes) {
   const totalPts = Object.keys(db.patients).length;
   const totalBPImproving = bpOutcomes.improving;
   const totalA1CImproving = a1cOutcomes.improving;
-  const totalWorseningCombined = bpOutcomes.worsening + a1cOutcomes.worsening;
-
   const pct = (n, d) => d > 0 ? Math.round((n/d)*100) + '%' : '—';
-
   document.getElementById('analyticsKPIs').innerHTML = `
     <div class="analytics-kpi gold">
       <div class="kpi-label">Total Patients</div>
@@ -1569,32 +1571,9 @@ function renderBPOutcomesChart(outcomes) {
     type: 'doughnut',
     data: {
       labels: ['Improving', 'Worsening', 'Stable', 'Insufficient Data'],
-      datasets: [{
-        data: [improving, worsening, stable, newPatient],
-        backgroundColor: [
-          'rgba(46,125,82,0.85)',
-          'rgba(192,57,43,0.85)',
-          'rgba(168,137,60,0.7)',
-          'rgba(140,125,96,0.4)'
-        ],
-        borderColor: '#FFFDF7',
-        borderWidth: 3
-      }]
+      datasets: [{ data: [improving, worsening, stable, newPatient], backgroundColor: ['rgba(46,125,82,0.85)','rgba(192,57,43,0.85)','rgba(168,137,60,0.7)','rgba(140,125,96,0.4)'], borderColor: '#FFFDF7', borderWidth: 3 }]
     },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      cutout: '62%',
-      plugins: {
-        legend: { position: 'bottom', labels: { font: { family: "'Jost', sans-serif", size: 12 }, color: goldPalette.text, padding: 14 } },
-        tooltip: { backgroundColor: '#2C2416', bodyFont: { family: "'Jost', sans-serif", size: 13 }, padding: 12, cornerRadius: 8, callbacks: {
-          label: (ctx) => {
-            const total = ctx.dataset.data.reduce((a,b)=>a+b,0);
-            const pct = total > 0 ? Math.round((ctx.raw/total)*100) : 0;
-            return ` ${ctx.raw} patients (${pct}%)`;
-          }
-        }}
-      }
-    }
+    options: { responsive: true, maintainAspectRatio: false, cutout: '62%', plugins: { legend: { position: 'bottom', labels: { font: { family: "'Jost', sans-serif", size: 12 }, color: goldPalette.text, padding: 14 } }, tooltip: { backgroundColor: '#2C2416', bodyFont: { family: "'Jost', sans-serif", size: 13 }, padding: 12, cornerRadius: 8, callbacks: { label: (ctx) => { const total = ctx.dataset.data.reduce((a,b)=>a+b,0); const pct = total > 0 ? Math.round((ctx.raw/total)*100) : 0; return ` ${ctx.raw} patients (${pct}%)`; } } } } }
   });
 }
 
@@ -1606,32 +1585,9 @@ function renderA1COutcomesChart(outcomes) {
     type: 'doughnut',
     data: {
       labels: ['Improving', 'Worsening', 'Stable', 'Insufficient Data'],
-      datasets: [{
-        data: [improving, worsening, stable, newPatient],
-        backgroundColor: [
-          'rgba(46,125,82,0.85)',
-          'rgba(192,57,43,0.85)',
-          'rgba(168,137,60,0.7)',
-          'rgba(140,125,96,0.4)'
-        ],
-        borderColor: '#FFFDF7',
-        borderWidth: 3
-      }]
+      datasets: [{ data: [improving, worsening, stable, newPatient], backgroundColor: ['rgba(46,125,82,0.85)','rgba(192,57,43,0.85)','rgba(168,137,60,0.7)','rgba(140,125,96,0.4)'], borderColor: '#FFFDF7', borderWidth: 3 }]
     },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      cutout: '62%',
-      plugins: {
-        legend: { position: 'bottom', labels: { font: { family: "'Jost', sans-serif", size: 12 }, color: goldPalette.text, padding: 14 } },
-        tooltip: { backgroundColor: '#2C2416', bodyFont: { family: "'Jost', sans-serif", size: 13 }, padding: 12, cornerRadius: 8, callbacks: {
-          label: (ctx) => {
-            const total = ctx.dataset.data.reduce((a,b)=>a+b,0);
-            const pct = total > 0 ? Math.round((ctx.raw/total)*100) : 0;
-            return ` ${ctx.raw} patients (${pct}%)`;
-          }
-        }}
-      }
-    }
+    options: { responsive: true, maintainAspectRatio: false, cutout: '62%', plugins: { legend: { position: 'bottom', labels: { font: { family: "'Jost', sans-serif", size: 12 }, color: goldPalette.text, padding: 14 } }, tooltip: { backgroundColor: '#2C2416', bodyFont: { family: "'Jost', sans-serif", size: 13 }, padding: 12, cornerRadius: 8, callbacks: { label: (ctx) => { const total = ctx.dataset.data.reduce((a,b)=>a+b,0); const pct = total > 0 ? Math.round((ctx.raw/total)*100) : 0; return ` ${ctx.raw} patients (${pct}%)`; } } } } }
   });
 }
 
@@ -1649,45 +1605,32 @@ function renderPatientBreakdownTable(metric) {
     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-light);padding:24px;font-style:italic;">No patient data</td></tr>';
     return;
   }
-
   const rows = patients.map(pid => {
     const p = db.patients[pid];
     const readings = metric === 'bp' ? (p.bpReadings || []) : (p.a1cReadings || []);
     const trend = metric === 'bp' ? getBPTrend(readings) : getA1CTrend(readings);
     const last = readings.slice(-1)[0];
     const prev = readings.slice(-2)[0];
-
     let prevStr = '—', lastStr = '—', changeStr = '—';
     if (metric === 'bp') {
       prevStr = prev ? `${prev.sys}/${prev.dia} mmHg` : '—';
       lastStr = last ? `${last.sys}/${last.dia} mmHg` : '—';
-      if (prev && last) {
-        const diff = last.sys - prev.sys;
-        changeStr = (diff > 0 ? '+' : '') + diff + ' mmHg (sys)';
-      }
+      if (prev && last) { const diff = last.sys - prev.sys; changeStr = (diff > 0 ? '+' : '') + diff + ' mmHg (sys)'; }
     } else {
       prevStr = prev ? `${prev.val}%` : '—';
       lastStr = last ? `${last.val}%` : '—';
-      if (prev && last) {
-        const diff = (last.val - prev.val).toFixed(1);
-        changeStr = (diff > 0 ? '+' : '') + diff + '%';
-      }
+      if (prev && last) { const diff = (last.val - prev.val).toFixed(1); changeStr = (diff > 0 ? '+' : '') + diff + '%'; }
     }
-
     const badgeMap = {
       improving: '<span class="trend-badge improving"><span class="trend-arrow">&#8595;</span> Improving</span>',
       worsening: '<span class="trend-badge worsening"><span class="trend-arrow">&#8593;</span> Worsening</span>',
       stable:    '<span class="trend-badge stable">Stable</span>',
       new:       '<span class="trend-badge new">Insufficient Data</span>'
     };
-
     return { pid, prevStr, lastStr, changeStr, trend, badge: badgeMap[trend] || '' };
   });
-
-  // Sort: worsening first, then stable, improving, new
   const order = { worsening: 0, stable: 1, improving: 2, new: 3 };
   rows.sort((a,b) => (order[a.trend]||99) - (order[b.trend]||99));
-
   tbody.innerHTML = rows.map(r => `
     <tr onclick="openPatient('${r.pid}')">
       <td><strong>#${r.pid}</strong></td>
@@ -1700,33 +1643,44 @@ function renderPatientBreakdownTable(metric) {
 }
 
 // ═══════════════════════════════════
-// GOOGLE SHEETS
+// GOOGLE SHEETS — BACKEND SYNC
 // ═══════════════════════════════════
 function connectSheet() {
   const id = document.getElementById('sheetIdInput').value.trim();
   const writeUrl = document.getElementById('sheetWriteUrlInput').value.trim();
-  if (!id) { showToast('Please paste a Sheet ID'); return; }
-  sheetId = id; setSheetWriteUrl(writeUrl);
-  localStorage.setItem(SHEET_ID_KEY, id);
+  if (!writeUrl && !id) { showToast('Please paste an Apps Script URL or Sheet ID'); return; }
+  if (id) { sheetId = id; localStorage.setItem(SHEET_ID_KEY, id); }
+  setSheetWriteUrl(writeUrl);
   document.getElementById('sheetSetupBanner').style.display = 'none';
-  showToast('Google Sheet connected. Syncing data…');
+  showToast('Connecting to Google Sheets…');
   fetchFromSheet();
 }
 
+// Primary: GET bundle from Apps Script Web App (supports write-back, full sync)
+// Fallback: read-only gviz fetch using Sheet ID
 async function fetchFromSheet() {
+  if (sheetWriteUrl) {
+    try {
+      const res = await fetch(sheetWriteUrl);
+      if (res.ok) {
+        const bundle = await res.json();
+        if (bundle && bundle.ok !== false) {
+          parseBackendBundle(bundle);
+          showToast('✓ Synced with Google Sheets');
+          return;
+        }
+      }
+    } catch(e) { /* fall through to Sheet ID read-only path */ }
+  }
   if (!sheetId) return;
   try {
-    if (sheetWriteUrl) {
-      const bundle = await postToSheetBackend('get_all', { sheetId });
-      if (bundle && bundle.ok !== false) { parseBackendBundle(bundle); showToast('Sheet synced from backend'); return; }
-    }
     const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json`;
     const res = await fetch(url);
     const text = await res.text();
     const json = JSON.parse(text.substring(47).slice(0,-2));
     parseSheetData(json);
   } catch(e) {
-    showToast('Could not fetch sheet. Check Sheet ID and Apps Script URL.');
+    showToast('Could not sync. Check your Apps Script URL or Sheet ID.');
   }
 }
 
@@ -1755,7 +1709,37 @@ function parseSheetData(json) {
 }
 
 function openSheetTemplate() {
-  alert(`Google Sheet + Apps Script Setup:\n\n1. Create a Google Sheet named "Helping Hands Clinic Data".\n2. Create these tabs with exact headers:\n\n   Tab: Readings\n   PatientID | Type | DateTime | Value1 | Value2 | Note\n\n   Tab: Alerts\n   AlertID | PatientID | Type | Message | Time | Level | Seen\n\n   Tab: Patients\n   PatientID\n\n   Tab: Medications\n   PatientID | Name | Dosage | StartDate\n\n3. In Apps Script, paste the backend code (GoogleAppsScript-Code.gs).\n4. Set Script Property: SHEET_ID = your sheet ID.\n5. Deploy as Web App (Execute as: Me, Access: Anyone).\n6. Paste Sheet ID and Web App URL into this app, then click Connect.`);
+  alert(
+    'SETUP GUIDE\n\n' +
+    'STEP 1 — Create Google Sheet\n' +
+    '  • Create a new Google Sheet (name it anything)\n' +
+    '  • Copy the Sheet ID from the URL: docs.google.com/spreadsheets/d/[SHEET_ID]/edit\n\n' +
+    'STEP 2 — Open Apps Script\n' +
+    '  • In the Sheet: Extensions → Apps Script\n' +
+    '  • Delete any default code\n' +
+    '  • Paste the full contents of GoogleAppsScript-Code.gs\n' +
+    '  • Save the project\n\n' +
+    'STEP 3 — Set Script Property\n' +
+    '  • Click the gear icon (Project Settings)\n' +
+    '  • Scroll to "Script Properties" → Add property\n' +
+    '    Key: SHEET_ID   Value: [your sheet ID]\n\n' +
+    'STEP 4 — Deploy as Web App\n' +
+    '  • Click Deploy → New Deployment\n' +
+    '  • Type: Web App\n' +
+    '  • Execute as: Me\n' +
+    '  • Who has access: Anyone\n' +
+    '  • Click Deploy → copy the Web App URL\n\n' +
+    'STEP 5 — Hardcode URL for auto multi-device sync\n' +
+    '  • Open index.html in VS Code or any editor\n' +
+    '  • Find the line: const HARDCODED_SCRIPT_URL = \'\'\n' +
+    '  • Paste your Web App URL between the quotes\n' +
+    '  • Push to GitHub — every device now auto-syncs on load\n\n' +
+    'SHEET TABS CREATED AUTOMATICALLY:\n' +
+    '  patients | readings | medications | alerts | r_data\n\n' +
+    'R-READY TAB (r_data) COLUMNS:\n' +
+    '  patient_id | visit_date | systolic_mmhg | diastolic_mmhg | a1c_pct | note_bp | note_a1c\n' +
+    '  → Copy this tab into RStudio and run lm() or cor() directly'
+  );
 }
 
 // ═══════════════════════════════════
@@ -1775,16 +1759,32 @@ document.querySelectorAll('.modal-overlay').forEach(o => {
 // INIT
 // ═══════════════════════════════════
 loadDB();
-if (sheetId) fetchFromSheet();
+
+// Auto-apply hardcoded URL — every device that loads this file syncs automatically
+if (HARDCODED_SCRIPT_URL && !sheetWriteUrl) {
+  sheetWriteUrl = HARDCODED_SCRIPT_URL;
+  localStorage.setItem(SHEET_WRITE_URL_KEY, HARDCODED_SCRIPT_URL);
+}
+
+// Auto-sync on load if backend URL is available
+if (sheetWriteUrl || sheetId) fetchFromSheet();
+
 const sheetIdInput = document.getElementById('sheetIdInput');
 const sheetWriteUrlInput = document.getElementById('sheetWriteUrlInput');
 if (sheetIdInput) sheetIdInput.value = sheetId;
 if (sheetWriteUrlInput) sheetWriteUrlInput.value = sheetWriteUrl;
+
+// Hide setup banner if already configured
+if (HARDCODED_SCRIPT_URL || sheetWriteUrl) {
+  const banner = document.getElementById('sheetSetupBanner');
+  if (banner) banner.style.display = 'none';
+}
+
 renderAlertsList();
 renderHomeStats();
 
-// Seed sample data for local demo
-if (!sheetId && Object.keys(db.patients).length === 0) {
+// Seed sample data for local demo only (no backend, no data)
+if (!sheetWriteUrl && !sheetId && Object.keys(db.patients).length === 0) {
   const sampleData = {
     "1001": {
       bpReadings: [
@@ -1830,24 +1830,18 @@ if (!sheetId && Object.keys(db.patients).length === 0) {
       medications: []
     }
   };
-
   for (const pid in sampleData) {
     db.patients[pid] = sampleData[pid];
     const p = sampleData[pid];
     p.bpReadings.forEach(r => {
       const s = getBPStatus(r.sys, r.dia);
-      if (s !== 'normal') {
-        db.alerts.push({ id: Date.now() + Math.random(), patientId: pid, type: 'bp', msg: `BP ${r.sys}/${r.dia} — ${s === 'critical' ? 'Hypertensive Urgency' : 'Stage 2 Hypertension'}`, time: r.datetime, seen: false, level: s });
-      }
+      if (s !== 'normal') db.alerts.push({ id: Date.now() + Math.random(), patientId: pid, type: 'bp', msg: `BP ${r.sys}/${r.dia} — ${s === 'critical' ? 'Hypertensive Urgency' : 'Stage 2 Hypertension'}`, time: r.datetime, seen: false, level: s });
     });
     p.a1cReadings.forEach(r => {
       const s = getA1CStatus(r.val);
-      if (s !== 'normal') {
-        db.alerts.push({ id: Date.now() + Math.random(), patientId: pid, type: 'a1c', msg: `A1C ${r.val}% — ${s === 'critical' ? 'Poor Control (>9.0)' : 'Above Target (>7.0)'}`, time: r.datetime, seen: false, level: s });
-      }
+      if (s !== 'normal') db.alerts.push({ id: Date.now() + Math.random(), patientId: pid, type: 'a1c', msg: `A1C ${r.val}% — ${s === 'critical' ? 'Poor Control (>9.0)' : 'Above Target (>7.0)'}`, time: r.datetime, seen: false, level: s });
     });
   }
-
   saveDB(); renderAlertsList(); renderHomeStats();
 }
 </script>
