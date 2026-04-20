@@ -844,7 +844,7 @@ const SHEET_WRITE_URL_KEY = 'hh_sheet_write_url';
 //         paste the Web App URL between the quotes below, then push to GitHub.
 //         Every device that opens this page will auto-sync — no manual setup.
 // ─────────────────────────────────────────────────────────────────────────────
-const HARDCODED_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby9Kwr1ttLf8vROFhUFHxwt7ozpL90Jxthi2Zh3mXHTTEvRj7ir4l_BmQ8ojajNFvTt/exec';  // <-- paste your Apps Script Web App URL here
+const HARDCODED_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyGhLtDPZCIWwALS8s0w72MGUxCwCk6_-bcel5eW0DoMMlSEJjKp8eKj_QhCEYU9l5J/exec';  // <-- paste your Apps Script Web App URL here
 
 let db = { patients: {}, alerts: [], seenAlerts: [] };
 let sheetId = localStorage.getItem(SHEET_ID_KEY) || '';
@@ -884,12 +884,15 @@ function setSheetWriteUrl(url) {
 
 async function postToSheetBackend(action, payload = {}) {
   if (!sheetWriteUrl) return true;
-  const res = await fetch(sheetWriteUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ action, payload })
+  const params = new URLSearchParams({
+    action,
+    payload: JSON.stringify(payload)
   });
-  if (!res.ok) throw new Error('Sheet write endpoint returned non-200 status');
+  const res = await fetch(`${sheetWriteUrl}?${params}`, {
+    method: 'GET',
+    redirect: 'follow'
+  });
+  if (!res.ok) throw new Error('Sheet write failed');
   const text = await res.text();
   return text ? JSON.parse(text) : { ok: true };
 }
