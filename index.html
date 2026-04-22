@@ -1202,6 +1202,121 @@
     from { opacity:0; transform: scale(0.7) translateY(20px); }
     to   { opacity:1; transform: scale(1) translateY(0); }
   }
+  /* ═══════════════════════════════════
+     AI PANELS
+  ═══════════════════════════════════ */
+  .ai-panel {
+    background: linear-gradient(135deg, #1A1208 0%, #2C2010 100%);
+    border: 1px solid rgba(201,168,76,0.3);
+    border-radius: 18px; padding: 24px 28px;
+    margin-bottom: 28px; position: relative; overflow: hidden;
+  }
+  .ai-panel::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--gold-dim), var(--gold), var(--gold-shine), var(--gold));
+    background-size: 200% 100%;
+    animation: shimmer 3s linear infinite;
+  }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+  .ai-panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px; flex-wrap: wrap; gap: 10px;
+  }
+  .ai-panel-title {
+    display: flex; align-items: center; gap: 10px;
+    font-family: 'Playfair Display', serif;
+    font-size: 18px; font-weight: 600; color: var(--gold-light);
+  }
+  .ai-badge {
+    background: linear-gradient(135deg, var(--gold-dim), var(--gold));
+    color: #1A1208; font-size: 10px; font-weight: 700;
+    padding: 2px 8px; border-radius: 20px;
+    text-transform: uppercase; letter-spacing: 0.1em;
+  }
+  .ai-panel-body {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px; line-height: 1.85;
+    color: rgba(245,237,214,0.88); min-height: 48px;
+  }
+  .ai-panel-body.loading {
+    display: flex; align-items: center; gap: 12px;
+    color: rgba(245,237,214,0.45); font-style: italic; font-size: 14px;
+  }
+  .ai-spinner {
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 2px solid rgba(201,168,76,0.2);
+    border-top-color: var(--gold);
+    animation: spin 0.8s linear infinite; flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .ai-run-btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 8px 18px;
+    background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+    border: none; border-radius: 9px;
+    font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+    color: #1A1208; cursor: pointer; transition: all 0.2s; flex-shrink: 0;
+  }
+  .ai-run-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(168,137,60,0.5); }
+  .ai-run-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .ai-panel-meta { font-size: 11px; color: rgba(245,237,214,0.3); margin-top: 10px; font-style: italic; }
+
+  /* ═══════════════════════════════════
+     TIME FILTER TABS
+  ═══════════════════════════════════ */
+  .time-filter-bar {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 24px; flex-wrap: wrap;
+  }
+  .time-filter-label {
+    font-size: 12px; font-weight: 500; color: var(--text-light);
+    text-transform: uppercase; letter-spacing: 0.1em;
+  }
+  .time-filter-btn {
+    padding: 6px 16px; border-radius: 20px;
+    border: 1.5px solid var(--border);
+    background: var(--white); color: var(--text-mid);
+    font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .time-filter-btn:hover { border-color: var(--gold-light); color: var(--gold-dim); }
+  .time-filter-btn.active { background: var(--gold-pale); border-color: var(--gold); color: var(--gold-dim); font-weight: 600; }
+  .time-filter-stats { margin-left: auto; font-size: 13px; color: var(--text-light); font-style: italic; }
+
+  /* ═══════════════════════════════════
+     ANIMATED HOME IMPACT COUNTERS
+  ═══════════════════════════════════ */
+  .home-impact-row {
+    display: flex; gap: 18px; justify-content: center;
+    max-width: 960px; margin: 40px auto 0; flex-wrap: wrap;
+  }
+  .impact-chip {
+    background: var(--white); border: 1.5px solid var(--border);
+    border-radius: 18px; padding: 22px 28px;
+    text-align: center; flex: 1; min-width: 130px;
+    position: relative; overflow: hidden; transition: all 0.25s;
+  }
+  .impact-chip::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+  .impact-chip.gold::before  { background: linear-gradient(90deg, var(--gold), var(--gold-dim)); }
+  .impact-chip.green::before { background: linear-gradient(90deg, var(--alert-green), #4caf78); }
+  .impact-chip.red::before   { background: linear-gradient(90deg, var(--alert-red), #e05c50); }
+  .impact-chip.blue::before  { background: linear-gradient(90deg, #4338CA, #6366f1); }
+  .impact-chip:hover { transform: translateY(-3px); box-shadow: 0 12px 32px var(--shadow-md); }
+  .impact-chip-val {
+    font-family: 'Playfair Display', serif;
+    font-size: 40px; font-weight: 700; line-height: 1; margin-bottom: 6px;
+  }
+  .impact-chip.gold  .impact-chip-val { color: var(--gold-dim); }
+  .impact-chip.green .impact-chip-val { color: var(--alert-green); }
+  .impact-chip.red   .impact-chip-val { color: var(--alert-red); }
+  .impact-chip.blue  .impact-chip-val { color: #4338CA; }
+  .impact-chip-lbl { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-light); }
+  .impact-chip-sub { font-size: 11px; color: var(--text-light); font-style: italic; margin-top: 3px; }
+
+  /* Population trend chart */
+  .pop-trend-container { position: relative; height: 260px; }
+
   @media print {
     .topbar, .back-btn, .add-data-btn, .export-pdf-btn,
     .add-patient-btn, .metric-tabs, .chart-toggle,
@@ -1306,6 +1421,29 @@
           <div class="home-card-arrow">&#8594;</div>
         </div>
       </div>
+
+      <div class="home-impact-row" id="homeImpactRow">
+        <div class="impact-chip gold">
+          <div class="impact-chip-val" id="imp-patients">0</div>
+          <div class="impact-chip-lbl">Patients</div>
+          <div class="impact-chip-sub">enrolled</div>
+        </div>
+        <div class="impact-chip blue">
+          <div class="impact-chip-val" id="imp-readings">0</div>
+          <div class="impact-chip-lbl">Readings</div>
+          <div class="impact-chip-sub">total logged</div>
+        </div>
+        <div class="impact-chip green">
+          <div class="impact-chip-val" id="imp-improving">0</div>
+          <div class="impact-chip-lbl">Improving</div>
+          <div class="impact-chip-sub">BP or A1C trend</div>
+        </div>
+        <div class="impact-chip red" style="cursor:pointer" onclick="openAlertsModal()">
+          <div class="impact-chip-val" id="imp-alerts">0</div>
+          <div class="impact-chip-lbl">Active Alerts</div>
+          <div class="impact-chip-sub">click to review</div>
+        </div>
+      </div>
     </div>
 
     <!-- PATIENTS PAGE -->
@@ -1330,6 +1468,15 @@
             <button onclick="connectSheet()">Connect</button>
           </div>
         </div>
+      </div>
+
+      <div class="time-filter-bar">
+        <span class="time-filter-label">Period:</span>
+        <button class="time-filter-btn active" onclick="setTimeFilter('all',this)">All Time</button>
+        <button class="time-filter-btn" onclick="setTimeFilter('thismonth',this)">This Month</button>
+        <button class="time-filter-btn" onclick="setTimeFilter('lastmonth',this)">Last Month</button>
+        <button class="time-filter-btn" onclick="setTimeFilter('3months',this)">Last 3 Months</button>
+        <span class="time-filter-stats" id="timeFilterStats"></span>
       </div>
 
       <div class="search-wrap">
@@ -1443,8 +1590,17 @@
         <button class="confetti-btn" onclick="launchConfetti();showToast('🎉 Looking good!')">🎉 Celebrate</button>
       </div>
 
-      <div class="analytics-print-header" id="analyticsPrintHeaderInPage"></div>
+      <!-- TIME FILTER -->
+      <div class="time-filter-bar">
+        <span class="time-filter-label">Period:</span>
+        <button class="time-filter-btn active" onclick="setAnalyticsTimeFilter('all',this)">All Time</button>
+        <button class="time-filter-btn" onclick="setAnalyticsTimeFilter('thismonth',this)">This Month</button>
+        <button class="time-filter-btn" onclick="setAnalyticsTimeFilter('lastmonth',this)">Last Month</button>
+        <button class="time-filter-btn" onclick="setAnalyticsTimeFilter('3months',this)">Last 3 Months</button>
+        <span class="time-filter-stats" id="analyticsTimeStats"></span>
+      </div>
 
+      <div class="analytics-print-header" id="analyticsPrintHeaderInPage"></div>
       <div class="analytics-summary-row" id="analyticsKPIs"></div>
 
       <div class="analytics-grid">
@@ -1852,24 +2008,18 @@ function markSeen(id) {
 // ═══════════════════════════════════
 // HOME STATS
 // ═══════════════════════════════════
-function renderHomeStats() {
-  const pCount = Object.keys(db.patients).length;
-  let rCount = 0;
-  for (const pid in db.patients) rCount += (db.patients[pid].bpReadings||[]).length + (db.patients[pid].a1cReadings||[]).length;
-  const aCount = db.alerts.filter(a => !a.seen).length;
-  document.getElementById('stat-patients').textContent = pCount;
-  document.getElementById('stat-readings').textContent = rCount;
-  document.getElementById('stat-alerts').textContent = aCount;
-}
-
 function openAlertsModal() { renderAlertsList(); document.getElementById('alertsModal').classList.add('open'); }
 
 // ═══════════════════════════════════
 // PATIENTS GRID
 // ═══════════════════════════════════
-function renderPatientsGrid(filter = '') {
+function renderPatientsGrid(filter = '', range = null) {
   const grid = document.getElementById('patientsGrid');
-  let ids = Object.keys(db.patients).filter(id => !filter || id.includes(filter));
+  let ids = Object.keys(db.patients).filter(id => {
+    if (filter && !id.includes(filter)) return false;
+    if (range && !patientHasReadingInRange(id, range)) return false;
+    return true;
+  });
 
   // Sort
   if (currentSort === 'id') {
@@ -2428,6 +2578,15 @@ function renderAnalytics() {
   renderBPOutcomesChart(bpOutcomes);
   renderA1COutcomesChart(a1cOutcomes);
   renderPatientBreakdownTable(currentBreakdownMetric);
+  // Update time filter stats
+  const range = getTimeFilterRange(currentAnalyticsTimeFilter);
+  const statsEl = document.getElementById('analyticsTimeStats');
+  if (statsEl && range) {
+    const filtered = Object.keys(db.patients).filter(pid => patientHasReadingInRange(pid, range));
+    statsEl.textContent = `${filtered.length} patients with readings in period`;
+  } else if (statsEl) {
+    statsEl.textContent = '';
+  }
 }
 
 function computeBPOutcomes() {
@@ -2750,35 +2909,6 @@ function animateConfetti() {
   if (confettiPieces.length > 0) requestAnimationFrame(animateConfetti);
   else { confettiRunning = false; confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height); }
 }
-
-// Auto-launch confetti when opening a patient with an improving trend
-const _origOpenPatient = openPatient;
-// Wrap openPatient to check for improving trend and celebrate
-function openPatientWithCelebration(id) {
-  openPatient(id);
-  const p = db.patients[id];
-  if (!p) return;
-  const bpTrend = getBPTrend(p.bpReadings || []);
-  const a1cTrend = getA1CTrend(p.a1cReadings || []);
-  if (bpTrend === 'improving' || a1cTrend === 'improving') {
-    setTimeout(() => {
-      launchConfetti();
-      showToast('🎉 This patient is improving!');
-    }, 400);
-  }
-}
-
-// Override patient card clicks and breakdown table clicks to use celebration wrapper
-// (Patient cards already call openPatient directly via inline onclick, so we patch openPatient globally)
-window.__openPatient_orig = openPatient;
-window.openPatient = function(id) {
-  window.__openPatient_orig(id);
-  const p = db.patients[id];
-  if (!p) return;
-  if (getBPTrend(p.bpReadings||[]) === 'improving' || getA1CTrend(p.a1cReadings||[]) === 'improving') {
-    setTimeout(() => { launchConfetti(); showToast('🎉 Patient is on an improving trend!'); }, 500);
-  }
-};
 
 // ═══════════════════════════════════
 // PDF EXPORT
@@ -3183,6 +3313,172 @@ document.addEventListener('keydown', e => {
     eggBuffer = '';
   }
 });
+
+// ═══════════════════════════════════
+// ANIMATED COUNTERS
+// ═══════════════════════════════════
+function animateCount(el, target, duration = 1200) {
+  if (!el) return;
+  const start = 0;
+  const startTime = performance.now();
+  function update(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    el.textContent = Math.round(start + (target - start) * eased);
+    if (progress < 1) requestAnimationFrame(update);
+  }
+  requestAnimationFrame(update);
+}
+
+function renderHomeStats() {
+  const pCount = Object.keys(db.patients).length;
+  let rCount = 0;
+  for (const pid in db.patients) rCount += (db.patients[pid].bpReadings||[]).length + (db.patients[pid].a1cReadings||[]).length;
+  const aCount = db.alerts.filter(a => !a.seen).length;
+  let improving = 0;
+  for (const pid in db.patients) {
+    const p = db.patients[pid];
+    if (getBPTrend(p.bpReadings||[]) === 'improving' || getA1CTrend(p.a1cReadings||[]) === 'improving') improving++;
+  }
+
+  // Topbar stats (plain)
+  document.getElementById('stat-patients').textContent = pCount;
+  document.getElementById('stat-readings').textContent = rCount;
+  document.getElementById('stat-alerts').textContent = aCount;
+
+  // Animated impact chips on home page
+  animateCount(document.getElementById('imp-patients'), pCount);
+  animateCount(document.getElementById('imp-readings'), rCount);
+  animateCount(document.getElementById('imp-improving'), improving);
+  animateCount(document.getElementById('imp-alerts'), aCount);
+}
+
+// ═══════════════════════════════════
+// TIME FILTER
+// ═══════════════════════════════════
+let currentTimeFilter = 'all';
+let currentAnalyticsTimeFilter = 'all';
+
+function getTimeFilterRange(filter) {
+  const now = new Date();
+  if (filter === 'all') return null;
+  if (filter === 'thismonth') {
+    return { start: new Date(now.getFullYear(), now.getMonth(), 1), end: now };
+  }
+  if (filter === 'lastmonth') {
+    const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const end   = new Date(now.getFullYear(), now.getMonth(), 0);
+    return { start, end };
+  }
+  if (filter === '3months') {
+    return { start: new Date(now.getFullYear(), now.getMonth() - 3, 1), end: now };
+  }
+  return null;
+}
+
+function patientHasReadingInRange(pid, range) {
+  if (!range) return true;
+  const p = db.patients[pid];
+  if (!p) return false;
+  const all = [...(p.bpReadings||[]), ...(p.a1cReadings||[])];
+  return all.some(r => {
+    const d = new Date(r.datetime);
+    return d >= range.start && d <= range.end;
+  });
+}
+
+function setTimeFilter(filter, btn) {
+  currentTimeFilter = filter;
+  document.querySelectorAll('.time-filter-bar .time-filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const range = getTimeFilterRange(filter);
+  const allIds = Object.keys(db.patients);
+  const filtered = range ? allIds.filter(pid => patientHasReadingInRange(pid, range)) : allIds;
+  const statsEl = document.getElementById('timeFilterStats');
+  if (statsEl) statsEl.textContent = filter !== 'all' ? `${filtered.length} patient${filtered.length !== 1 ? 's' : ''} with readings in period` : '';
+  renderPatientsGrid(document.getElementById('patientSearch')?.value.trim() || '', range);
+}
+
+function setAnalyticsTimeFilter(filter, btn) {
+  currentAnalyticsTimeFilter = filter;
+  document.querySelectorAll('#page-analytics .time-filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAnalytics();
+}
+
+// ═══════════════════════════════════
+// MEDICATION OVERLAY ON CHARTS
+// ═══════════════════════════════════
+function getMedAnnotations(medications, readings) {
+  if (!medications || !medications.length || !readings || !readings.length) return [];
+  const labels = readings.map(r => r.datetime);
+  return medications
+    .filter(m => m.startDate)
+    .map(m => {
+      const idx = labels.findIndex(d => d >= m.startDate);
+      return idx >= 0 ? { medName: m.name, idx, date: m.startDate } : null;
+    })
+    .filter(Boolean);
+}
+
+// Patch renderBPChart and renderA1CChart to include med annotation lines
+const _origRenderBPChart = renderBPChart;
+window.renderBPChart = function(readings) {
+  _origRenderBPChart(readings);
+  if (!bpChartInst || !currentPatientId) return;
+  const meds = db.patients[currentPatientId]?.medications || [];
+  const annotations = getMedAnnotations(meds, readings);
+  if (!annotations.length) return;
+  annotations.forEach(ann => {
+    bpChartInst.data.datasets.push({
+      label: `💊 ${ann.medName} started`,
+      data: readings.map((_, i) => i === ann.idx ? null : null),
+      borderColor: 'rgba(168,137,60,0.6)',
+      borderWidth: 2,
+      borderDash: [6, 3],
+      pointRadius: 0,
+      type: 'line',
+      xAxisID: 'x'
+    });
+  });
+  bpChartInst.update();
+  // Draw vertical annotation lines manually via plugin
+  addMedLines(bpChartInst, annotations, readings.map(r => formatDateTime(r.datetime)));
+};
+
+function addMedLines(chart, annotations, labels) {
+  const plugin = {
+    id: 'medLines',
+    afterDraw(chart) {
+      const ctx = chart.ctx;
+      const xAxis = chart.scales['x'];
+      const yAxis = chart.scales['y'] || chart.scales['y1'];
+      if (!xAxis || !yAxis) return;
+      annotations.forEach(ann => {
+        const label = formatDateTime(ann.date);
+        const labelIdx = labels.indexOf(label);
+        if (labelIdx < 0) return;
+        const x = xAxis.getPixelForValue(labelIdx);
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(x, yAxis.top);
+        ctx.lineTo(x, yAxis.bottom);
+        ctx.strokeStyle = 'rgba(168,137,60,0.55)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([5, 4]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(168,137,60,0.85)';
+        ctx.font = '11px DM Sans, sans-serif';
+        ctx.fillText(`💊 ${ann.medName}`, x + 4, yAxis.top + 14);
+        ctx.restore();
+      });
+    }
+  };
+  Chart.register(plugin);
+  chart.update();
+}
 
 loadDB();
 
