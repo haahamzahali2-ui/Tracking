@@ -1070,8 +1070,139 @@
   .confetti-btn:hover { border-color: var(--gold-light); color: var(--gold-dim); background: var(--gold-pale); }
 
   /* ═══════════════════════════════════
-     ANALYTICS PRINT STYLES
+     LIVE CLOCK + SYNC DOT
   ═══════════════════════════════════ */
+  .topbar-clock {
+    text-align: center;
+    border-left: 1px solid rgba(201,168,76,0.15);
+    padding-left: 20px;
+  }
+  .topbar-clock-time {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px; font-weight: 600;
+    color: var(--gold); line-height: 1;
+    letter-spacing: 0.02em;
+  }
+  .topbar-clock-date {
+    font-size: 10px; font-weight: 400;
+    color: rgba(201,168,76,0.5);
+    letter-spacing: 0.1em; text-transform: uppercase;
+    margin-top: 2px;
+  }
+  .sync-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #4caf78;
+    box-shadow: 0 0 6px #4caf78;
+    flex-shrink: 0;
+    transition: all 0.4s;
+    cursor: pointer;
+    title: 'Sheet connected';
+  }
+  .sync-dot.syncing {
+    background: var(--gold);
+    box-shadow: 0 0 8px var(--gold);
+    animation: pulse-sync 1s infinite;
+  }
+  .sync-dot.error {
+    background: var(--alert-red);
+    box-shadow: 0 0 6px var(--alert-red);
+  }
+  @keyframes pulse-sync {
+    0%, 100% { opacity: 1; } 50% { opacity: 0.4; }
+  }
+
+  /* ═══════════════════════════════════
+     SORT + FILTER BAR
+  ═══════════════════════════════════ */
+  .patient-controls {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 24px; flex-wrap: wrap;
+  }
+  .sort-bar {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+  .sort-label {
+    font-size: 12px; font-weight: 500; color: var(--text-light);
+    text-transform: uppercase; letter-spacing: 0.1em; white-space: nowrap;
+  }
+  .sort-btn {
+    padding: 7px 14px; border-radius: 20px;
+    border: 1.5px solid var(--border);
+    background: var(--white); color: var(--text-mid);
+    font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: all 0.2s; white-space: nowrap;
+  }
+  .sort-btn:hover { border-color: var(--gold-light); color: var(--gold-dim); }
+  .sort-btn.active {
+    background: var(--gold-pale); border-color: var(--gold);
+    color: var(--gold-dim); font-weight: 600;
+  }
+  .patient-count-label {
+    margin-left: auto;
+    font-size: 13px; color: var(--text-light); font-style: italic;
+  }
+
+  /* ═══════════════════════════════════
+     OVERDUE BADGE
+  ═══════════════════════════════════ */
+  .overdue-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 9px; border-radius: 20px;
+    font-size: 11px; font-weight: 600;
+    background: #FEF3E2; color: var(--alert-amber);
+    border: 1px solid #f5d09a;
+  }
+
+  /* ═══════════════════════════════════
+     LIVE BP PREVIEW
+  ═══════════════════════════════════ */
+  .bp-live-preview {
+    margin-top: 10px; padding: 12px 16px;
+    border-radius: 12px; font-family: 'DM Sans', sans-serif;
+    font-size: 14px; font-weight: 600;
+    display: none; transition: all 0.25s;
+    border: 1.5px solid transparent;
+  }
+  .bp-live-preview.normal  { background: var(--alert-green-bg); color: var(--alert-green); border-color: #a3d9bc; display: block; }
+  .bp-live-preview.stage1  { background: #FEF3E2; color: #b06a00; border-color: #f5d09a; display: block; }
+  .bp-live-preview.stage2  { background: var(--alert-amber-bg); color: var(--alert-amber); border-color: #f5d09a; display: block; }
+  .bp-live-preview.crisis  { background: var(--alert-red-bg); color: var(--alert-red); border-color: #f3b0aa; display: block; }
+
+  /* ═══════════════════════════════════
+     EASTER EGG
+  ═══════════════════════════════════ */
+  .easter-egg-overlay {
+    position: fixed; inset: 0; z-index: 9998;
+    background: rgba(26,18,8,0.92);
+    display: none; align-items: center; justify-content: center;
+    flex-direction: column;
+    backdrop-filter: blur(8px);
+  }
+  .easter-egg-overlay.show { display: flex; }
+  .easter-egg-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 52px; font-weight: 700;
+    color: var(--gold);
+    text-align: center; line-height: 1.2;
+    animation: eggPop 0.5s cubic-bezier(.4,0,.2,1);
+  }
+  .easter-egg-sub {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 18px; font-weight: 300;
+    color: var(--gold-light); margin-top: 16px;
+    text-align: center; letter-spacing: 0.08em;
+  }
+  .easter-egg-close {
+    margin-top: 36px; padding: 10px 28px;
+    background: var(--gold); border: none; border-radius: 12px;
+    font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
+    color: var(--topbar-bg); cursor: pointer;
+  }
+  @keyframes eggPop {
+    from { opacity:0; transform: scale(0.7) translateY(20px); }
+    to   { opacity:1; transform: scale(1) translateY(0); }
+  }
+</style>
   @media print {
     .topbar, .back-btn, .add-data-btn, .export-pdf-btn,
     .add-patient-btn, .metric-tabs, .chart-toggle,
@@ -1123,8 +1254,23 @@
       <div class="topbar-stat-val" id="stat-alerts" style="color:#e87070">—</div>
       <div class="topbar-stat-lbl">Alerts</div>
     </div>
+    <div class="topbar-clock">
+      <div class="topbar-clock-time" id="topbarClock">--:--</div>
+      <div class="topbar-clock-date" id="topbarDate">---</div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;border-left:1px solid rgba(201,168,76,0.15);padding-left:16px;">
+      <div class="sync-dot" id="syncDot" title="Sheet sync status" onclick="fetchFromSheet()"></div>
+      <div style="font-size:9px;color:rgba(201,168,76,0.4);letter-spacing:0.1em;text-transform:uppercase;" id="syncLabel">Synced</div>
+    </div>
     <button class="dark-toggle" onclick="toggleDarkMode()" title="Toggle dark mode" id="darkToggleBtn">🌙</button>
   </div>
+</div>
+
+<!-- EASTER EGG -->
+<div class="easter-egg-overlay" id="easterEggOverlay">
+  <div class="easter-egg-text">💛 Helping Hands 💛</div>
+  <div class="easter-egg-sub">Thank you for serving the community</div>
+  <button class="easter-egg-close" onclick="document.getElementById('easterEggOverlay').classList.remove('show')">Keep Going ›</button>
 </div>
 
 <!-- CONFETTI CANVAS -->
@@ -1192,6 +1338,20 @@
           <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
         </span>
         <input type="text" id="patientSearch" placeholder="Search by patient ID (e.g. 1042)…" oninput="filterPatients()" />
+      </div>
+
+      <div class="patient-controls">
+        <div class="sort-bar">
+          <span class="sort-label">Sort:</span>
+          <button class="sort-btn active" onclick="setSort('id',this)">ID</button>
+          <button class="sort-btn" onclick="setSort('critical',this)">🔴 Critical First</button>
+          <button class="sort-btn" onclick="setSort('overdue',this)">⏰ Overdue First</button>
+          <button class="sort-btn" onclick="setSort('worsening',this)">📉 Worsening</button>
+          <button class="sort-btn" onclick="setSort('improving',this)">📈 Improving</button>
+          <button class="sort-btn" onclick="setSort('readings',this)">📋 Most Readings</button>
+          <button class="sort-btn" onclick="setSort('lastseen',this)">🕐 Last Seen</button>
+        </div>
+        <div class="patient-count-label" id="patientCountLabel"></div>
       </div>
 
       <div class="patients-grid" id="patientsGrid">
@@ -1344,10 +1504,11 @@
     <div class="modal-form-section active" id="modal-bp">
       <div class="form-row"><label>Date</label><input type="date" id="bp-datetime" /></div>
       <div class="form-row-pair">
-        <div class="form-row"><label>Systolic (mmHg)</label><input type="number" id="bp-systolic" placeholder="e.g. 128" /></div>
-        <div class="form-row"><label>Diastolic (mmHg)</label><input type="number" id="bp-diastolic" placeholder="e.g. 82" /></div>
+        <div class="form-row"><label>Systolic (mmHg)</label><input type="number" id="bp-systolic" placeholder="e.g. 128" oninput="updateBPPreview()" /></div>
+        <div class="form-row"><label>Diastolic (mmHg)</label><input type="number" id="bp-diastolic" placeholder="e.g. 82" oninput="updateBPPreview()" /></div>
       </div>
-      <div class="form-row"><label>Notes (optional)</label><textarea id="bp-note" placeholder="Add notes for this BP reading..."></textarea></div>
+      <div class="bp-live-preview" id="bpLivePreview"></div>
+      <div class="form-row" style="margin-top:12px;"><label>Notes (optional)</label><textarea id="bp-note" placeholder="Add notes for this BP reading..."></textarea></div>
     </div>
     <div class="modal-form-section" id="modal-a1c">
       <div class="form-row"><label>Date</label><input type="date" id="a1c-datetime" /></div>
@@ -1478,7 +1639,6 @@ const SHEET_ID_KEY = 'hh_sheet_id';
 const SHEET_WRITE_URL_KEY = 'hh_sheet_write_url';
 
 const HARDCODED_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwwWJfHdJM4bF9HoZBd89EEOfaIo5ipTMNzobQC4nu9Ou2H7wOpGvc-dkfgicTsO45D/exec';
-
 let db = { patients: {}, alerts: [], seenAlerts: [], stickies: {} };
 let sheetId = localStorage.getItem(SHEET_ID_KEY) || '';
 let sheetWriteUrl = localStorage.getItem(SHEET_WRITE_URL_KEY) || '';
@@ -1709,7 +1869,18 @@ function openAlertsModal() { renderAlertsList(); document.getElementById('alerts
 // ═══════════════════════════════════
 function renderPatientsGrid(filter = '') {
   const grid = document.getElementById('patientsGrid');
-  const ids = Object.keys(db.patients).filter(id => !filter || id.includes(filter));
+  let ids = Object.keys(db.patients).filter(id => !filter || id.includes(filter));
+
+  // Sort
+  if (currentSort === 'id') {
+    ids.sort((a,b) => Number(a) - Number(b) || a.localeCompare(b));
+  } else {
+    ids.sort((a,b) => getPatientSortScore(b) - getPatientSortScore(a));
+  }
+
+  // Update count label
+  const countEl = document.getElementById('patientCountLabel');
+  if (countEl) countEl.textContent = `${ids.length} patient${ids.length !== 1 ? 's' : ''}`;
 
   const cards = ids.map(id => {
     const p = db.patients[id];
@@ -1751,9 +1922,10 @@ function renderPatientsGrid(filter = '') {
       const daysDiff = Math.floor((Date.now() - new Date(lastDate)) / 86400000);
       const dotClass = daysDiff <= 7 ? 'recent' : daysDiff <= 30 ? '' : 'old';
       const label = daysDiff === 0 ? 'Today' : daysDiff === 1 ? 'Yesterday' : daysDiff < 30 ? `${daysDiff}d ago` : `${Math.floor(daysDiff/30)}mo ago`;
-      lastSeenHtml = `<div class="patient-last-seen"><div class="patient-last-seen-dot ${dotClass}"></div>Last visit: ${label}</div>`;
+      const overdueHtml = daysDiff >= 60 ? `<span class="overdue-badge">⏰ Overdue ${daysDiff}d</span>` : '';
+      lastSeenHtml = `<div class="patient-last-seen"><div class="patient-last-seen-dot ${dotClass}"></div>Last visit: ${label} ${overdueHtml}</div>`;
     } else {
-      lastSeenHtml = `<div class="patient-last-seen"><div class="patient-last-seen-dot old"></div>No visits yet</div>`;
+      lastSeenHtml = `<div class="patient-last-seen"><div class="patient-last-seen-dot old"></div>No visits yet <span class="overdue-badge">⏰ Never seen</span></div>`;
     }
 
     return `<div class="patient-card ${cardClass}" onclick="openPatient('${id}')">
@@ -2143,6 +2315,8 @@ function openAddDataModal() {
   document.getElementById('a1c-value').value = '';
   document.getElementById('bp-note').value = '';
   document.getElementById('a1c-note').value = '';
+  const prev = document.getElementById('bpLivePreview');
+  if (prev) { prev.className = 'bp-live-preview'; prev.textContent = ''; }
   activeModalTab = 'bp';
   document.querySelectorAll('.modal-tab').forEach((t,i) => t.classList.toggle('active', i===0));
   document.getElementById('modal-bp').classList.add('active');
@@ -2857,6 +3031,158 @@ function exportAnalyticsPDF() {
   window.print();
   setTimeout(() => { document.body.classList.remove('printing-analytics'); hdr.innerHTML = ''; }, 1200);
 }
+
+// ═══════════════════════════════════
+// LIVE CLOCK
+// ═══════════════════════════════════
+function updateClock() {
+  const now = new Date();
+  const timeEl = document.getElementById('topbarClock');
+  const dateEl = document.getElementById('topbarDate');
+  if (!timeEl) return;
+  const h = now.getHours(), m = now.getMinutes();
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const hh = h % 12 || 12;
+  const mm = String(m).padStart(2, '0');
+  timeEl.textContent = `${hh}:${mm} ${ampm}`;
+  dateEl.textContent = now.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+}
+updateClock();
+setInterval(updateClock, 10000);
+
+// ═══════════════════════════════════
+// SYNC STATUS DOT
+// ═══════════════════════════════════
+function setSyncStatus(status) {
+  // status: 'syncing' | 'ok' | 'error'
+  const dot = document.getElementById('syncDot');
+  const lbl = document.getElementById('syncLabel');
+  if (!dot) return;
+  dot.className = 'sync-dot' + (status !== 'ok' ? ` ${status}` : '');
+  lbl.textContent = status === 'syncing' ? 'Syncing…' : status === 'error' ? 'Error' : 'Synced';
+  dot.title = status === 'ok' ? 'Sheet connected — click to re-sync' : status === 'error' ? 'Sync failed — click to retry' : 'Syncing…';
+}
+
+// Wrap fetchFromSheet to update sync dot
+const _origFetchFromSheet = fetchFromSheet;
+window.fetchFromSheet = async function() {
+  setSyncStatus('syncing');
+  try {
+    await _origFetchFromSheet();
+    setSyncStatus('ok');
+  } catch(e) {
+    setSyncStatus('error');
+  }
+};
+
+// ═══════════════════════════════════
+// SORT
+// ═══════════════════════════════════
+let currentSort = 'id';
+
+function setSort(sort, btn) {
+  currentSort = sort;
+  document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderPatientsGrid(document.getElementById('patientSearch')?.value.trim() || '');
+}
+
+function getDaysSinceLastReading(pid) {
+  const p = db.patients[pid];
+  if (!p) return 9999;
+  const allDates = [...(p.bpReadings||[]), ...(p.a1cReadings||[])].map(r => r.datetime).filter(Boolean).sort();
+  const last = allDates.slice(-1)[0];
+  if (!last) return 9999;
+  return Math.floor((Date.now() - new Date(last)) / 86400000);
+}
+
+function getPatientSortScore(pid) {
+  const p = db.patients[pid];
+  if (!p) return 0;
+  const lastBP  = (p.bpReadings||[]).slice(-1)[0];
+  const lastA1C = (p.a1cReadings||[]).slice(-1)[0];
+  const bpStatus  = lastBP  ? getBPStatus(lastBP.sys, lastBP.dia)  : 'normal';
+  const a1cStatus = lastA1C ? getA1CStatus(lastA1C.val)            : 'normal';
+  const bpTrend  = getBPTrend(p.bpReadings||[]);
+  const a1cTrend = getA1CTrend(p.a1cReadings||[]);
+  const total = (p.bpReadings||[]).length + (p.a1cReadings||[]).length;
+  const days  = getDaysSinceLastReading(pid);
+
+  switch(currentSort) {
+    case 'critical':
+      if (bpStatus === 'critical' || a1cStatus === 'critical') return 3;
+      if (bpStatus === 'warning'  || a1cStatus === 'warning')  return 2;
+      return 1;
+    case 'overdue':
+      return days; // higher = more overdue = first
+    case 'worsening':
+      if (bpTrend === 'worsening' || a1cTrend === 'worsening') return 2;
+      return 1;
+    case 'improving':
+      if (bpTrend === 'improving' || a1cTrend === 'improving') return 2;
+      return 1;
+    case 'readings':
+      return total;
+    case 'lastseen':
+      return days;
+    case 'id':
+    default:
+      return 0;
+  }
+}
+
+// ═══════════════════════════════════
+// OVERDUE LOGIC
+// ═══════════════════════════════════
+function isOverdue(pid) {
+  return getDaysSinceLastReading(pid) >= 60;
+}
+
+// ═══════════════════════════════════
+// LIVE BP PREVIEW
+// ═══════════════════════════════════
+function updateBPPreview() {
+  const sys = parseFloat(document.getElementById('bp-systolic')?.value);
+  const dia = parseFloat(document.getElementById('bp-diastolic')?.value);
+  const el  = document.getElementById('bpLivePreview');
+  if (!el) return;
+  if (!sys || !dia) { el.className = 'bp-live-preview'; el.textContent = ''; return; }
+
+  let cls, icon, label, detail;
+  if (sys >= 180 || dia >= 120) {
+    cls = 'crisis'; icon = '🚨'; label = 'Hypertensive Crisis';
+    detail = 'Immediate medical attention required';
+  } else if (sys >= 140 || dia >= 90) {
+    cls = 'stage2'; icon = '⚠️'; label = 'Stage 2 Hypertension';
+    detail = 'Systolic ≥140 or Diastolic ≥90';
+  } else if (sys >= 130 || dia >= 80) {
+    cls = 'stage1'; icon = '🟡'; label = 'Stage 1 Hypertension';
+    detail = 'Systolic 130–139 or Diastolic 80–89';
+  } else if (sys >= 120 && dia < 80) {
+    cls = 'stage1'; icon = '🟡'; label = 'Elevated';
+    detail = 'Systolic 120–129, Diastolic <80';
+  } else {
+    cls = 'normal'; icon = '✅'; label = 'Normal';
+    detail = 'Systolic <120 and Diastolic <80';
+  }
+  el.className = `bp-live-preview ${cls}`;
+  el.innerHTML = `${icon} <strong>${label}</strong> &nbsp;·&nbsp; <span style="font-weight:400;opacity:0.8">${detail}</span>`;
+}
+
+// ═══════════════════════════════════
+// EASTER EGG
+// ═══════════════════════════════════
+let eggBuffer = '';
+const EGG_CODE = 'HELPINGHANDS';
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  eggBuffer = (eggBuffer + e.key.toUpperCase()).slice(-EGG_CODE.length);
+  if (eggBuffer === EGG_CODE) {
+    document.getElementById('easterEggOverlay').classList.add('show');
+    launchConfetti();
+    eggBuffer = '';
+  }
+});
 
 loadDB();
 
