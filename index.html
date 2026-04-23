@@ -1317,6 +1317,17 @@
   /* Population trend chart */
   .pop-trend-container { position: relative; height: 260px; }
 
+  /* Visit note format toggle */
+  .chart-toggle-btn {
+    background: none; border: none; padding: 6px 14px;
+    font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+    color: var(--text-light); cursor: pointer; border-radius: 8px; transition: all 0.2s;
+  }
+  .chart-toggle-btn.active {
+    background: var(--white); color: var(--gold-dim);
+    box-shadow: 0 1px 4px var(--shadow); font-weight: 600;
+  }
+
   @media print {
     .topbar, .back-btn, .add-data-btn, .export-pdf-btn,
     .add-patient-btn, .metric-tabs, .chart-toggle,
@@ -1523,6 +1534,7 @@
       <button class="add-data-btn" onclick="openAddDataModal()">+ Add New Reading</button>
       <button class="add-data-btn" style="margin-left:8px;" onclick="openAddMedicationModal()">+ Add Medication</button>
       <button class="export-pdf-btn" onclick="exportPatientPDF()">⬇ Export PDF</button>
+      <button class="export-pdf-btn" style="margin-left:8px;background:linear-gradient(135deg,#1A1208,#2C2010);color:var(--gold-light);border-color:rgba(201,168,76,0.3);" onclick="openVisitNoteModal()">🤖 Generate Visit Note</button>
 
       <div class="metric-tabs">
         <button class="metric-tab active" id="metric-tab-bp" onclick="setDetailMetric('bp')">Blood Pressure</button>
@@ -1781,6 +1793,61 @@
 
 <!-- KEYBOARD HINT -->
 <div class="kbd-hint" id="kbdHint"></div>
+
+<!-- VISIT NOTE MODAL -->
+<div class="modal-overlay" id="visitNoteModal">
+  <div class="modal" style="max-width:620px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:10px;">
+      <h3 style="margin-bottom:0;">🤖 Visit Note Generator</h3>
+      <div style="display:flex;background:var(--cream);border-radius:10px;padding:3px;gap:3px;" id="visitNoteFormatToggle">
+        <button class="chart-toggle-btn active" id="fmtSOAP" onclick="setNoteFormat('soap',this)">SOAP Note</button>
+        <button class="chart-toggle-btn" id="fmtPara" onclick="setNoteFormat('paragraph',this)">Paragraph</button>
+      </div>
+    </div>
+    <div class="modal-sub" id="visitNoteModalSub">Patient #— · Powered by Claude AI</div>
+
+    <!-- Generating state -->
+    <div id="visitNoteGenerating" style="display:none;padding:28px 0;text-align:center;">
+      <div style="display:inline-flex;align-items:center;gap:12px;color:var(--text-light);font-size:14px;font-style:italic;">
+        <div class="ai-spinner"></div>
+        Claude is generating your visit note…
+      </div>
+    </div>
+
+    <!-- Note editor -->
+    <div id="visitNoteEditor" style="display:none;">
+      <div style="font-size:12px;color:var(--text-light);margin-bottom:8px;font-style:italic;">
+        ✏️ Review and edit before copying. This is a draft — always verify with a provider.
+      </div>
+      <textarea id="visitNoteText"
+        style="width:100%;min-height:320px;resize:vertical;padding:16px;
+               border:1.5px solid var(--border);border-radius:14px;
+               background:var(--off-white);font-family:'DM Sans',sans-serif;
+               font-size:14px;line-height:1.75;color:var(--text-dark);
+               outline:none;transition:border-color 0.2s;"
+        onfocus="this.style.borderColor='var(--gold)'"
+        onblur="this.style.borderColor='var(--border)'">
+      </textarea>
+      <div style="font-size:11px;color:var(--text-light);margin-top:6px;" id="visitNoteTimestamp"></div>
+    </div>
+
+    <!-- Empty/prompt state -->
+    <div id="visitNotePrompt" style="padding:32px 0;text-align:center;">
+      <div style="font-size:40px;margin-bottom:12px;">📋</div>
+      <div style="font-family:'Playfair Display',serif;font-size:20px;font-weight:600;color:var(--text-dark);margin-bottom:8px;">Ready to generate</div>
+      <div style="font-size:14px;color:var(--text-light);line-height:1.7;max-width:360px;margin:0 auto;">
+        Claude will read this patient's last 3 readings, medications, and trends to draft a visit note ready for Athena.
+      </div>
+    </div>
+
+    <div class="modal-actions" style="margin-top:20px;">
+      <button class="btn-cancel" onclick="closeModal('visitNoteModal')">Close</button>
+      <button class="btn-cancel" id="visitNoteRegenBtn" onclick="generateVisitNote()" style="display:none;">↺ Regenerate</button>
+      <button class="btn-save" id="visitNoteGenerateBtn" onclick="generateVisitNote()">✨ Generate Note</button>
+      <button class="btn-save" id="visitNoteCopyBtn" onclick="copyVisitNote()" style="display:none;background:linear-gradient(135deg,var(--alert-green),#2a7048);">📋 Copy to Clipboard</button>
+    </div>
+  </div>
+</div>
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
@@ -3478,6 +3545,168 @@ function addMedLines(chart, annotations, labels) {
   };
   Chart.register(plugin);
   chart.update();
+}
+
+// ═══════════════════════════════════
+// AI VISIT NOTE GENERATOR
+// ═══════════════════════════════════
+let currentNoteFormat = 'soap';
+
+function setNoteFormat(fmt, btn) {
+  currentNoteFormat = fmt;
+  document.querySelectorAll('.chart-toggle-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function openVisitNoteModal() {
+  if (!currentPatientId) return;
+  document.getElementById('visitNoteModalSub').textContent = `Patient #${currentPatientId} · Powered by Gemini AI`;
+  document.getElementById('visitNotePrompt').style.display = 'block';
+  document.getElementById('visitNoteEditor').style.display = 'none';
+  document.getElementById('visitNoteGenerating').style.display = 'none';
+  document.getElementById('visitNoteGenerateBtn').style.display = 'inline-flex';
+  document.getElementById('visitNoteRegenBtn').style.display = 'none';
+  document.getElementById('visitNoteCopyBtn').style.display = 'none';
+  document.getElementById('visitNoteText').value = '';
+  document.getElementById('visitNoteModal').classList.add('open');
+}
+
+async function generateVisitNote() {
+  if (!currentPatientId) return;
+  const p = db.patients[currentPatientId];
+  if (!p) return;
+
+  // Show loading state
+  document.getElementById('visitNotePrompt').style.display = 'none';
+  document.getElementById('visitNoteEditor').style.display = 'none';
+  document.getElementById('visitNoteGenerating').style.display = 'block';
+  document.getElementById('visitNoteGenerateBtn').style.display = 'none';
+  document.getElementById('visitNoteRegenBtn').style.display = 'none';
+  document.getElementById('visitNoteCopyBtn').style.display = 'none';
+
+  // Build context from last 3 readings
+  const bp  = (p.bpReadings||[]).slice(-3);
+  const a1c = (p.a1cReadings||[]).slice(-3);
+  const meds = (p.medications||[]).filter(m => !m.endDate || new Date(m.endDate) >= new Date());
+  const allMeds = p.medications || [];
+  const bpTrend  = getBPTrend(p.bpReadings||[]);
+  const a1cTrend = getA1CTrend(p.a1cReadings||[]);
+
+  const lastBP  = bp.slice(-1)[0];
+  const lastA1C = a1c.slice(-1)[0];
+  const bpStatus  = lastBP  ? getBPStatus(lastBP.sys, lastBP.dia)  : null;
+  const a1cStatus = lastA1C ? getA1CStatus(lastA1C.val)            : null;
+
+  const bpHistory = bp.map(r =>
+    `  ${r.datetime}: ${r.sys}/${r.dia} mmHg (${getBPStatus(r.sys,r.dia)})${r.note ? ' — Note: '+r.note : ''}`
+  ).join('\n') || '  No BP readings recorded';
+
+  const a1cHistory = a1c.map(r =>
+    `  ${r.datetime}: ${r.val}% (${getA1CStatus(r.val)})${r.note ? ' — Note: '+r.note : ''}`
+  ).join('\n') || '  No A1C readings recorded';
+
+  const activeMedList = meds.length
+    ? meds.map(m => `  ${m.name} ${m.dosage} (started ${m.startDate})`).join('\n')
+    : '  No active medications';
+
+  const discMedList = allMeds.filter(m => m.endDate && new Date(m.endDate) < new Date())
+    .map(m => `  ${m.name} ${m.dosage} (discontinued ${m.endDate})`).join('\n');
+
+  const today = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+
+  const isSOAP = currentNoteFormat === 'soap';
+
+  const prompt = isSOAP
+    ? `Generate a clinical SOAP note for a free community health clinic visit. Use only the data provided. Do not invent symptoms or exam findings beyond what is stated. Be concise and clinical.
+
+Patient: #${currentPatientId}
+Date: ${today}
+Clinic: Helping Hands Free Community Clinic
+
+DATA:
+Recent BP readings (most recent last):
+${bpHistory}
+
+Recent A1C readings (most recent last):
+${a1cHistory}
+
+Active Medications:
+${activeMedList}
+${discMedList ? '\nDiscontinued Medications:\n'+discMedList : ''}
+
+BP Trend: ${bpTrend} | A1C Trend: ${a1cTrend}
+Current BP Status: ${bpStatus || 'unknown'} | Current A1C Status: ${a1cStatus || 'unknown'}
+
+Generate a SOAP note with these exact sections:
+SUBJECTIVE:
+OBJECTIVE:
+ASSESSMENT:
+PLAN:
+
+Keep each section to 2-3 lines. Flag urgent items. Note medication correlations with trends where relevant.`
+
+    : `Write a brief clinical visit summary paragraph for a free community health clinic. Use only the data provided. 3-4 sentences.
+
+Patient: #${currentPatientId}
+Date: ${today}
+Clinic: Helping Hands Free Community Clinic
+
+DATA:
+Recent BP readings:
+${bpHistory}
+
+Recent A1C readings:
+${a1cHistory}
+
+Active Medications:
+${activeMedList}
+
+BP Trend: ${bpTrend} | A1C Trend: ${a1cTrend}
+
+Write a concise clinical paragraph summarizing the visit, trends, and recommended follow-up. Mention medication correlation if relevant.`;
+
+  try {
+    const params = new URLSearchParams({
+      action: 'generate_note',
+      payload: JSON.stringify({ prompt, isSOAP, patientId: currentPatientId })
+    });
+    const res = await fetch(`${sheetWriteUrl}?${params}`, { method: 'GET', redirect: 'follow' });
+    const data = await res.json();
+    const text = data.note || data.error || 'Unable to generate note. Please try again.';
+    if (data.error) throw new Error(data.error);
+
+    document.getElementById('visitNoteText').value = text;
+    document.getElementById('visitNoteTimestamp').textContent =
+      `Generated ${new Date().toLocaleTimeString()} · ${isSOAP ? 'SOAP format' : 'Paragraph format'} · Patient #${currentPatientId}`;
+    document.getElementById('visitNoteGenerating').style.display = 'none';
+    document.getElementById('visitNoteEditor').style.display = 'block';
+    document.getElementById('visitNoteRegenBtn').style.display = 'inline-flex';
+    document.getElementById('visitNoteCopyBtn').style.display = 'inline-flex';
+  } catch(e) {
+    document.getElementById('visitNoteGenerating').style.display = 'none';
+    document.getElementById('visitNotePrompt').style.display = 'block';
+    document.getElementById('visitNotePrompt').innerHTML = `
+      <div style="font-size:32px;margin-bottom:12px;">⚠️</div>
+      <div style="font-size:14px;color:var(--alert-red);">Failed to generate note. Check your connection and try again.</div>`;
+    document.getElementById('visitNoteGenerateBtn').style.display = 'inline-flex';
+  }
+}
+
+async function copyVisitNote() {
+  const text = document.getElementById('visitNoteText').value;
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+    const btn = document.getElementById('visitNoteCopyBtn');
+    btn.textContent = '✅ Copied!';
+    setTimeout(() => { btn.innerHTML = '📋 Copy to Clipboard'; }, 2000);
+    showToast('Visit note copied to clipboard');
+  } catch(e) {
+    // Fallback for browsers that block clipboard
+    document.getElementById('visitNoteText').select();
+    document.execCommand('copy');
+    showToast('Visit note copied');
+  }
 }
 
 loadDB();
