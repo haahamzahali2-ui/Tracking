@@ -3671,9 +3671,12 @@ Write a concise clinical paragraph summarizing the visit, trends, and recommende
       payload: JSON.stringify({ prompt, isSOAP, patientId: currentPatientId })
     });
     const res = await fetch(`${sheetWriteUrl}?${params}`, { method: 'GET', redirect: 'follow' });
-    const data = await res.json();
-    const text = data.note || data.error || 'Unable to generate note. Please try again.';
-    if (data.error) throw new Error(data.error);
+    const raw = await res.text();
+    console.log('GAS generate_note raw response:', raw);
+    const data = JSON.parse(raw);
+    console.log('GAS generate_note parsed:', data);
+    if (!data.ok) throw new Error(data.error || 'Unknown error from GAS');
+    const text = data.note || 'Unable to generate note. Please try again.';
 
     document.getElementById('visitNoteText').value = text;
     document.getElementById('visitNoteTimestamp').textContent =
@@ -3683,11 +3686,13 @@ Write a concise clinical paragraph summarizing the visit, trends, and recommende
     document.getElementById('visitNoteRegenBtn').style.display = 'inline-flex';
     document.getElementById('visitNoteCopyBtn').style.display = 'inline-flex';
   } catch(e) {
+    console.error('Visit note generation error:', e);
     document.getElementById('visitNoteGenerating').style.display = 'none';
     document.getElementById('visitNotePrompt').style.display = 'block';
     document.getElementById('visitNotePrompt').innerHTML = `
       <div style="font-size:32px;margin-bottom:12px;">⚠️</div>
-      <div style="font-size:14px;color:var(--alert-red);">Failed to generate note. Check your connection and try again.</div>`;
+      <div style="font-size:14px;color:var(--alert-red);margin-bottom:8px;">Failed to generate note.</div>
+      <div style="font-size:12px;color:var(--text-light);font-family:monospace;background:var(--cream);padding:8px 12px;border-radius:8px;text-align:left;">${e.message}</div>`;
     document.getElementById('visitNoteGenerateBtn').style.display = 'inline-flex';
   }
 }
