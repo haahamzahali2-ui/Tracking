@@ -3616,54 +3616,67 @@ async function generateVisitNote() {
 
   const isSOAP = currentNoteFormat === 'soap';
 
+  const totalBPReadings = (p.bpReadings||[]).length;
+  const totalA1CReadings = (p.a1cReadings||[]).length;
+  const firstBP = (p.bpReadings||[])[0];
+  const firstA1C = (p.a1cReadings||[])[0];
+
   const prompt = isSOAP
-    ? `Generate a clinical SOAP note for a free community health clinic visit. Use only the data provided. Do not invent symptoms or exam findings beyond what is stated. Be concise and clinical.
+    ? `You are a clinical documentation specialist at Helping Hands Free Community Clinic. Generate a detailed, thorough SOAP note for this patient visit. Be specific with all numbers. Write full sentences in each section. Do not leave any section sparse.
 
-Patient: #${currentPatientId}
-Date: ${today}
-Clinic: Helping Hands Free Community Clinic
+Patient ID: #${currentPatientId}
+Visit Date: ${today}
+Clinic: Helping Hands Free Community Clinic, Columbus, OH
 
-DATA:
-Recent BP readings (most recent last):
+CLINICAL DATA:
+
+Blood Pressure History (${totalBPReadings} total readings on file):
 ${bpHistory}
+${firstBP ? `First recorded BP: ${firstBP.sys}/${firstBP.dia} mmHg on ${firstBP.datetime}` : ''}
+BP Trend: ${bpTrend.toUpperCase()} | Current Status: ${bpStatus || 'unknown'}
 
-Recent A1C readings (most recent last):
+A1C History (${totalA1CReadings} total readings on file):
 ${a1cHistory}
+${firstA1C ? `First recorded A1C: ${firstA1C.val}% on ${firstA1C.datetime}` : ''}
+A1C Trend: ${a1cTrend.toUpperCase()} | Current Status: ${a1cStatus || 'unknown'}
 
 Active Medications:
 ${activeMedList}
 ${discMedList ? '\nDiscontinued Medications:\n'+discMedList : ''}
 
-BP Trend: ${bpTrend} | A1C Trend: ${a1cTrend}
-Current BP Status: ${bpStatus || 'unknown'} | Current A1C Status: ${a1cStatus || 'unknown'}
+INSTRUCTIONS — Write each section in full detail:
 
-Generate a SOAP note with these exact sections:
-SUBJECTIVE:
-OBJECTIVE:
-ASSESSMENT:
-PLAN:
+SUBJECTIVE: Describe why the patient is being seen (hypertension/diabetes management follow-up). Note the visit is for chronic disease monitoring at a free community clinic. Mention how long the patient has been followed (based on first reading date). Note any relevant observations from reading notes. If notes mention symptoms, adherence, or missed medications — include them here.
 
-Keep each section to 2-3 lines. Flag urgent items. Note medication correlations with trends where relevant.`
+OBJECTIVE: List ALL vital signs with exact values and clinical classifications. Compare most recent reading to previous readings with exact numbers and calculate the change. Note whether readings are improving, worsening, or stable with specific mmHg or % differences. List all active medications with doses.
 
-    : `Write a brief clinical visit summary paragraph for a free community health clinic. Use only the data provided. 3-4 sentences.
+ASSESSMENT: Provide a thorough clinical assessment of BP control and glycemic control. Reference specific numbers. Discuss medication effectiveness based on trend data. Flag any critical or urgent values. Discuss overall disease management progress.
 
-Patient: #${currentPatientId}
-Date: ${today}
-Clinic: Helping Hands Free Community Clinic
+PLAN: Write specific, actionable next steps including follow-up timing, medication considerations, monitoring recommendations, and patient education points relevant to hypertension/diabetes management.`
 
-DATA:
-Recent BP readings:
+    : `You are a clinical documentation specialist at Helping Hands Free Community Clinic. Write a detailed, professional visit summary paragraph for this patient. Include specific numbers, trends, medication correlation, and clear next steps. Write at least 5-6 sentences. Be thorough and specific — this will be used for clinical documentation.
+
+Patient ID: #${currentPatientId}
+Visit Date: ${today}
+Clinic: Helping Hands Free Community Clinic, Columbus, OH
+
+CLINICAL DATA:
+
+Blood Pressure History (${totalBPReadings} total readings):
 ${bpHistory}
+${firstBP ? `First recorded BP: ${firstBP.sys}/${firstBP.dia} mmHg on ${firstBP.datetime}` : ''}
+Overall BP Trend: ${bpTrend.toUpperCase()} | Current Classification: ${bpStatus || 'unknown'}
 
-Recent A1C readings:
+A1C History (${totalA1CReadings} total readings):
 ${a1cHistory}
+${firstA1C ? `First recorded A1C: ${firstA1C.val}% on ${firstA1C.datetime}` : ''}
+Overall A1C Trend: ${a1cTrend.toUpperCase()} | Current Classification: ${a1cStatus || 'unknown'}
 
 Active Medications:
 ${activeMedList}
+${discMedList ? '\nDiscontinued Medications:\n'+discMedList : ''}
 
-BP Trend: ${bpTrend} | A1C Trend: ${a1cTrend}
-
-Write a concise clinical paragraph summarizing the visit, trends, and recommended follow-up. Mention medication correlation if relevant.`;
+Write a thorough clinical paragraph that: (1) states the reason for visit and how long patient has been followed, (2) describes current vital findings with exact numbers and comparisons to prior readings, (3) assesses the trend and medication effectiveness, (4) identifies any urgent concerns, (5) outlines specific follow-up recommendations.`;
 
   try {
     const params = new URLSearchParams({
